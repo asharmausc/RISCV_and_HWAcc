@@ -1,0 +1,148 @@
+#!/usr/bin/perl -w
+use lib "/usr/local/netfpga/lib/Perl5";
+use strict;
+
+my $IDS_PATTERN_HI_REG = 0x2000300;
+my $IDS_PATTERN_LO_REG = 0x2000304;
+my $IDS_COMMAND_REG = 0x2000308;
+my $IDS_MATCHES_REG = 0x200030c;
+my $IDS_CTR_DROPFIFOOUT_REG = 0x2000314;
+my $IDS_CTR_DROPFIFOIN_REG  = 0x2000318;
+my $IDS_WR_N_RD_REG         = 0x200031c;
+my $IDS_DBG_ADDR            = 0x2000310;
+my $IDS_INFIFO_DL           = 0x2000320;
+my $IDS_INFIFO_DH           = 0x2000324;
+my $IDS_OUTFIFO_DL          = 0x2000328;
+my $IDS_OUTFIFO_DH          = 0x200032c;
+#my $IDS_READ_COUNTER_REG = 0x2000318;
+
+
+sub sramrd{
+   #my($addr) = @_;
+   #regwrite($IDS_DBG_ADDR, $addr);
+   regwrite($IDS_DBG_ADDR, 0x1010);
+   print "READ FROM:    ", regread( $IDS_DBG_ADDR), "\n";
+   print "INFIFO_LOW:    ", regread( $IDS_INFIFO_DL ), "\n";
+   print "INFIFO_HIGH:    ", regread( $IDS_INFIFO_DH ), "\n";
+   print "OUTFIFO_LOW:    ", regread( $IDS_OUTFIFO_DL ), "\n";
+   print "OUTFIFO_HIGH:    ", regread( $IDS_OUTFIFO_DH ), "\n";
+   regwrite($IDS_DBG_ADDR, 0x0101);
+   print "READ FROM:    ", regread( $IDS_DBG_ADDR), "\n";
+   print "INFIFO_LOW:    ", regread( $IDS_INFIFO_DL ), "\n";
+   print "INFIFO_HIGH:    ", regread( $IDS_INFIFO_DH ), "\n";
+   print "OUTFIFO_LOW:    ", regread( $IDS_OUTFIFO_DL ), "\n";
+   print "OUTFIFO_HIGH:    ", regread( $IDS_OUTFIFO_DH ), "\n";
+   regwrite($IDS_DBG_ADDR, 0x0000);
+   print "READ FROM:    ", regread( $IDS_DBG_ADDR), "\n";
+   print "INFIFO_LOW:    ", regread( $IDS_INFIFO_DL ), "\n";
+   print "INFIFO_HIGH:    ", regread( $IDS_INFIFO_DH ), "\n";
+   print "OUTFIFO_LOW:    ", regread( $IDS_OUTFIFO_DL ), "\n";
+   print "OUTFIFO_HIGH:    ", regread( $IDS_OUTFIFO_DH ), "\n";
+}
+
+sub regwrite {
+   my( $addr, $value ) = @_;
+   my $cmd = sprintf( "regwrite $addr 0x%08x", $value );
+   my $result = `$cmd`;
+   # print "Ran command '$cmd' and got result '$result'\n";
+}
+
+sub regread {
+   my( $addr ) = @_;
+   my $cmd = sprintf( "regread $addr" );
+   my @out = `$cmd`;
+   my $result = $out[0];
+   if ( $result =~ m/Reg (0x[0-9a-f]+) \((\d+)\):\s+(0x[0-9a-f]+) \((\d+)\)/ ) {
+      $result = $3;
+   }
+   return $result;
+}
+
+sub idsreset {
+   regwrite( $IDS_COMMAND_REG, 0x1 );
+   regwrite( $IDS_COMMAND_REG, 0x0 );
+}
+
+sub write_pattern {
+   my($hi, $lo) = @_;
+   regwrite($IDS_PATTERN_HI_REG, $hi);
+   regwrite($IDS_PATTERN_LO_REG, $lo);
+}
+
+# Turns an ascii string into a (pattern_hi,pattern_lo) list
+sub pattern_from_ascii {
+   my( $patstr ) = @_;
+   my @chars = split(//, $patstr);
+   my @ints = map {  ord( $_ ) } @chars;
+   my $validBytes = $#ints + 1;
+   my $hi = 0;
+   my $lo = 0;
+   for (my $i = 0; $i <= 6; $i++) {
+      if ($i < $validBytes) {
+         my $bit = 1 << (6 - $i);
+         # print "Setting mask bit $bit for byte $i\n";
+         $hi |= ($bit << 24);
+         if ($i <= 2) {
+            $hi |= ($ints[$i] << (8 * (2 - $i)));
+         } else {
+            my $pos = $i - 3;
+            $lo |= ($ints[$i] << (8 * (3 - $pos)));
+         }
+      }
+   }
+   return ($hi, $lo);
+}
+
+sub usage {
+   print "Usage: idsreg <cmd> <cmd options>\n";
+   print "  Commands:\n";
+   print "    reset                resets the matches counter\n";
+   print "    pattern <string>     set a pattern from ASCII\n";
+   print "    matches              displays the matches register\n";
+}
+
+my $numargs = $#ARGV + 1;
+if( $numargs < 1 ) {
+   usage();
+   exit(1);
+}
+my $cmd = $ARGV[0];
+if ($cmd eq "reset") {
+   idsreset();
+   print "WRITE TO REG    \n "; 
+   #regwrite( $IDS_WRITE_VALUE_REG, 0xbaeaa );
+   #print "READ_VALUE:      ", regread( $IDS_READ_VALUE_REG ), "\n";
+   #print "READ_COUNTER:    ", regread( $IDS_READ_COUNTER_REG ), "\n";
+} elsif ($cmd eq "pattern") {
+   if ($numargs < 2) {
+      usage();
+      exit(1);
+   }
+   my $str = $ARGV[1];
+   my($hi, $lo) = pattern_from_ascii($str);
+   printf("Setting pattern hi=0x%08x, lo=0x%08x\n", $hi, $lo);
+   write_pattern($hi, $lo);   
+} elsif ($cmd eq "matches") {
+   my $matches = regread( $IDS_MATCHES_REG );
+   print $matches,"\n\n";
+} elsif ($cmd eq "allregs") {
+   print "MATCHES:    ", regread( $IDS_MATCHES_REG ), "\n";
+   print "PATTERN_HI: ", regread( $IDS_PATTERN_HI_REG ), "\n";
+   print "PATTERN_LO: ", regread( $IDS_PATTERN_LO_REG ), "\n";
+   print "COMMAND:    ", regread( $IDS_COMMAND_REG ), "\n";
+  # print "DROPFIFOOUT:    ", regread( $IDS_CTR_DROPFIFOOUT_REG ), "\n";
+  # print "DROPFIFOIN :    ", regread( $IDS_CTR_DROPFIFOIN_REG ), "\n";
+  # print "WR_RD_REG  :    ", regread( $IDS_WR_N_RD_REG ), "\n";
+} elsif ($cmd eq "sram") {
+   #if ($numargs < 2) {
+   #   usage();
+   #   exit(1);
+   #}
+   #sramrd($ARGV[1]);
+   sramrd();
+} else {
+   print "Unrecognized command $cmd\n";
+   usage();
+   exit(1)
+}
+

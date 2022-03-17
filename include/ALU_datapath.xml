@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nf:module xmlns:nf="http://www.NetFPGA.org/NF2_register_system" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.NetFPGA.org/NF2_register_system NF2_register_system.xsd ">
+	<nf:name>ALU_datapath</nf:name>
+	<nf:prefix>ALU_datapath</nf:prefix>
+	<nf:location>udp</nf:location>
+	<nf:description>Registers for ALU_datapath</nf:description>
+	<nf:blocksize>64</nf:blocksize>
+	<nf:registers>
+		<nf:register>
+		  <nf:name>mem_data_low</nf:name>
+			<nf:description>Upper 32 bits of mem_data</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>mem_data_high</nf:name>
+			<nf:description>Upper 32 bits of mem_data</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>mem_addr_and_en</nf:name>
+			<nf:description>register for mem_address and en</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>istr_data</nf:name>
+			<nf:description>Register for instruction data</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>istr_addr_and_en</nf:name>
+			<nf:description>Register for instr_address and en</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>pc_en</nf:name>
+			<nf:description>Register to enable PC and start computation</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+        	<nf:register>
+		  <nf:name>mem_rd_data_low</nf:name>
+			<nf:description>Register to read mem_data high</nf:description>
+			<nf:type>generic_hardware32</nf:type>
+		</nf:register>
+        	<nf:register>
+		  <nf:name>mem_rd_data_high</nf:name>
+			<nf:description>Register to read mem_data low</nf:description>
+			<nf:type>generic_hardware32</nf:type>
+		</nf:register>
+        	<nf:register>
+		  <nf:name>istr_rd_data</nf:name>
+			<nf:description>Register to read instruction_data</nf:description>
+			<nf:type>generic_hardware32</nf:type>
+		</nf:register>
+	</nf:registers>
+</nf:module>
+

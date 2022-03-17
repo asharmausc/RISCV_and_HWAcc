@@ -1,0 +1,169 @@
+#!/usr/bin/perl -w
+use lib "/usr/local/netfpga/lib/Perl5";
+use strict;
+
+my $ALU_MEM_DATA_LOW = 0x2000300;
+my $ALU_MEM_DATA_HIGH  = 0x2000304;
+my $ALU_MEM_ADDR_EN   = 0x2000308;
+my $ALU_ISTR_DATA    = 0x200030c;
+my $ALU_ISTR_ADDR_EN = 0x2000310;
+my $ALU_PC_EN        = 0x2000314;
+my $ALU_MEM_RD_DATA_LOW  = 0x2000318;
+my $ALU_MEM_RD_DATA_HIGH   = 0x200031c;
+my $ALU_ISTR_RD_DATA      = 0x2000320;
+
+my $ALU_COUNT_IN      = 0x2000324;
+my $ALU_COUNT_OUT     = 0x2000328;
+
+my @instr_array=(
+0x20002283,
+0xFE028EE3,
+0x20102303,
+0x10232403,
+0x00002503,
+0x008575B3,
+0x00059E63,
+0x00402583,
+0x10132503,
+0x00A5F533,
+0x00051663,
+0x00150513,
+0x20A021A3,
+0x20002023,
+0xFC9FF06F,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000,
+0x00000000);
+
+my @data_mem=(
+0xf7ff0000,
+0x00000000,
+0xd7510000,
+0x5fc960f6
+);
+
+my @loop = (0..31);
+my @data_loop = (0..1);
+
+sub data_write {
+   print "### WRITE DATA ###\n";
+   for my $i (@data_loop){
+       regwrite( $ALU_MEM_ADDR_EN, 0x0100+$i); # assert write en for memory
+       regwrite( $ALU_MEM_DATA_LOW, $data_mem[$i*2]); # write to memory
+       regwrite( $ALU_MEM_DATA_HIGH, $data_mem[$i*2+1]); # write to memory
+       regwrite( $ALU_MEM_ADDR_EN, 0x0000+$i); # dassert write en eq
+   }
+   
+   print "###### VALUES WRITTEN ARE ####";
+   for my $i (@data_loop){
+       regwrite( $ALU_MEM_ADDR_EN, 0x0000+$i); # write en for memory
+       print "READ ADDRESS",$i," :    ", regread( $ALU_MEM_RD_DATA_LOW ), "\n";
+       print "READ ADDRESS",$i," :    ", regread( $ALU_MEM_RD_DATA_HIGH ), "\n";
+   }
+}
+
+sub read_data {
+   print "###### VALUES WRITTEN ARE ####";
+   for my $i (@data_loop){
+       regwrite( $ALU_MEM_ADDR_EN, 0x0000+$i); # write en for memory
+       print "READ ADDRESS LOW ",$i," :    ", regread( $ALU_MEM_RD_DATA_LOW ), " ";
+       print "HIGH",$i," :    ", regread( $ALU_MEM_RD_DATA_HIGH ), "\n";
+   }
+}
+   
+sub istr_write {
+   print "### WRITE INSTR ###\n";
+   for my $i (@loop){
+       regwrite( $ALU_ISTR_DATA, $instr_array[$i]); # write to memory
+       regwrite( $ALU_ISTR_ADDR_EN, 0x0200+$i); # write at memory address 0
+       regwrite( $ALU_ISTR_ADDR_EN, 0x0000+$i); # en low
+   }
+   print "Written instructions\n";
+   
+   #print "Enable PC\n";
+   #regwrite( $ALU_PC_EN, 0x001); # Enable the PC
+   
+   print "###### AFTER SORT ########\n";
+   #print "DISABLE PC\n";
+   #regwrite( $ALU_PC_EN, 0x000); # DISABLE the PC
+   print "###### VALUES WRITTEN ARE ####";
+   for my $i (@data_loop){
+       regwrite( $ALU_MEM_ADDR_EN, 0x0000+$i); # write en for memory
+       print "READ ADDRESS LOW ",$i," :    ", regread( $ALU_MEM_RD_DATA_LOW ), " ";
+       print "HIGH",$i," :    ", regread( $ALU_MEM_RD_DATA_HIGH ), "\n";
+   }
+}
+
+sub PC_EN {
+   print "Enable PC\n";
+   regwrite( $ALU_PC_EN, 0x001); # Enable the PC
+}
+sub PC_DEN {
+   print "DISABLE PC\n";
+   regwrite( $ALU_PC_EN, 0x000); # Enable the PC
+}
+
+sub regwrite {
+   my( $addr, $value ) = @_;
+   my $cmd = sprintf( "regwrite $addr 0x%08x", $value );
+   my $result = `$cmd`;
+   # print "Ran command '$cmd' and got result '$result'\n";
+}
+
+sub regread {
+   my( $addr ) = @_;
+   my $cmd = sprintf( "regread $addr" );
+   my @out = `$cmd`;
+   my $result = $out[0];
+   if ( $result =~ m/Reg (0x[0-9a-f]+) \((\d+)\):\s+(0x[0-9a-f]+) \((\d+)\)/ ) {
+      $result = $3;
+   }
+   return $result;
+}
+sub usage {
+   print "Usage: idsreg <cmd> <cmd options>\n";
+   print "  Commands:\n";
+   print "    alu             WRITE INSTR\n";
+   print "    data            WRITE DATA\n";
+   print "    pcen            EN PC\n";
+   print "    pcd             DISABLE PC\n";
+   print "    rd              read data\n";
+}
+
+my $numargs = $#ARGV + 1;
+if( $numargs < 1 ) {
+   usage();
+   exit(1);
+}
+my $cmd = $ARGV[0];
+if ($cmd eq "data") {
+   data_write();
+}
+elsif ($cmd eq "alu") {
+   istr_write();
+} elsif ($cmd eq "pcen") {
+   PC_EN();
+} elsif ($cmd eq "pcd") {
+   PC_DEN();
+} elsif ($cmd eq "rd") {
+   read_data();
+} else {
+   print "Unrecognized command $cmd\n";
+   usage();
+   exit(1)
+}
+
