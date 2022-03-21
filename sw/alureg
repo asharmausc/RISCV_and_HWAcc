@@ -2,18 +2,16 @@
 use lib "/usr/local/netfpga/lib/Perl5";
 use strict;
 
-my $ALU_MEM_DATA_LOW = 0x2000300;
-my $ALU_MEM_DATA_HIGH  = 0x2000304;
-my $ALU_MEM_ADDR_EN   = 0x2000308;
-my $ALU_ISTR_DATA    = 0x200030c;
-my $ALU_ISTR_ADDR_EN = 0x2000310;
-my $ALU_PC_EN        = 0x2000314;
-my $ALU_MEM_RD_DATA_LOW  = 0x2000318;
-my $ALU_MEM_RD_DATA_HIGH   = 0x200031c;
+my $ALU_MEM_DATA_LOW      = 0x2000300;
+my $ALU_MEM_DATA_HIGH     = 0x2000304;
+my $ALU_MEM_ADDR_EN       = 0x2000308;
+my $ALU_ISTR_DATA         = 0x200030c;
+my $ALU_ISTR_ADDR_EN      = 0x2000310;
+my $ALU_PC_EN             = 0x2000314;
+my $ALU_MEM_RD_DATA_LOW   = 0x2000318;
+my $ALU_MEM_RD_DATA_HIGH  = 0x200031c;
 my $ALU_ISTR_RD_DATA      = 0x2000320;
-
-my $ALU_COUNT_IN      = 0x2000324;
-my $ALU_COUNT_OUT     = 0x2000328;
+my $ALU_COUNT_IN          = 0x2000324;
 
 my @instr_array=(
 0x20002283,
@@ -117,6 +115,14 @@ sub PC_DEN {
    regwrite( $ALU_PC_EN, 0x000); # Enable the PC
 }
 
+sub reset_dev {
+   print "RESET PC\n";
+   regwrite( $ALU_PC_EN, 0x010); # Enable the PC
+   sleep(1);
+   regwrite( $ALU_PC_EN, 0x000); # Enable the PC
+}
+
+
 sub regwrite {
    my( $addr, $value ) = @_;
    my $cmd = sprintf( "regwrite $addr 0x%08x", $value );
@@ -142,7 +148,10 @@ sub usage {
    print "    pcen            EN PC\n";
    print "    pcd             DISABLE PC\n";
    print "    rd              read data\n";
+   print "    reset           reset ALU and FIFO\n";
 }
+
+print "READ Counters :    ", regread( $ALU_COUNT_IN ), " \n";
 
 my $numargs = $#ARGV + 1;
 if( $numargs < 1 ) {
@@ -155,7 +164,9 @@ if ($cmd eq "data") {
 }
 elsif ($cmd eq "alu") {
    istr_write();
-} elsif ($cmd eq "pcen") {
+} elsif ($cmd eq "reset") {
+   reset_dev();
+} elsif ($cmd eq "pcd") {
    PC_EN();
 } elsif ($cmd eq "pcd") {
    PC_DEN();

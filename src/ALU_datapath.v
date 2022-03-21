@@ -72,12 +72,13 @@ module ALU_datapath
    wire [63:0] mem_data_out;
    wire  mem_we, stall, reb, empty, almfull;      
    reg reb_r;
+   wire full;
    
     fifo_sram #(
       .DWIDTH  (72),
 	  .IAWIDTH (10) // Address range is [0 to 1023]
 	) inst_fifo_sram (
-      .reset_n      (~reset),
+      .reset_n      (~reset & ~pc_en[4]),
       .clk          (clk),
 	  .pc_en        (pc_en[0]), 
       .wea          (mem_we | in_wr),
@@ -92,6 +93,7 @@ module ALU_datapath
       .fifo_output  ({out_ctrl,out_data}),
 	  .almfull      (almfull),
 	  .fifo_empty   (empty),
+	  .o_full       (full),
 	  .stall        (stall)
     );
 	
@@ -144,7 +146,7 @@ module ALU_datapath
       .REG_ADDR_WIDTH      (`ALU_DATAPATH_REG_ADDR_WIDTH),     // Width of block addresses -- eg. MODULE_REG_ADDR_WIDTH
       .NUM_COUNTERS        (0),                 // Number of counters
       .NUM_SOFTWARE_REGS   (6),                 // Number of sw regs
-      .NUM_HARDWARE_REGS   (5)                  // Number of hw regs
+      .NUM_HARDWARE_REGS   (4)                  // Number of hw regs
    ) module_regs (
       .reg_req_in       (reg_req_in),
       .reg_ack_in       (reg_ack_in),
@@ -168,7 +170,8 @@ module ALU_datapath
       .software_regs    ({pc_en, istr_addr_and_en, istr_data, mem_addr_and_en, mem_data_high, mem_data_low}),
 
       // --- HW regs interface
-      .hardware_regs    ({out_count, in_count, istr_rd_data, mem_rd_data_high, mem_rd_data_low}),
+      //.hardware_regs    ({{out_count, empty, full, almfull, stall, in_count[11:0]}, istr_rd_data, mem_rd_data_high, mem_rd_data_low}),
+      .hardware_regs    ({{28'h0000000, empty, full, almfull, stall}, istr_rd_data, mem_rd_data_high, mem_rd_data_low}),
 
       .clk              (clk),
       .reset            (reset)

@@ -9,9 +9,9 @@ localparam NUM_INSTR = 32;
 
 localparam DROP = 0;
 
-reg [DATA_WIDTH-1:0]             in_data;
-reg [CTRL_WIDTH-1:0]             in_ctrl;
-reg                              in_wr  ;
+reg [DATA_WIDTH-1:0]             in_data = 'h0;
+reg [CTRL_WIDTH-1:0]             in_ctrl = 'h0;
+reg                              in_wr   = 'h0;
 wire                             in_rdy ;
 
 wire[DATA_WIDTH-1:0]             out_data;
@@ -46,7 +46,7 @@ wire [9:0]  mem_addr_out;
 wire [63:0] mem_data_out;
 wire  mem_we, stall, almfull, empty;
 
-reg clk = 0;
+reg clk = 1;
 reg reset = 0;
 
 // clock
@@ -124,15 +124,15 @@ integer num_data_vals;
 task send_data; begin
 	count = 0;
 	while(count != 2) begin
-	    d_mem_addra = count;
-		d_mem_din   = mem_ALU[count];
-		d_mem_we    = 1'b1;
+	    d_mem_addra <= count;
+		d_mem_din   <= mem_ALU[count];
+		d_mem_we    <= 1'b1;
 		#10;
 		count = count + 1'b1;
 	end
-	    d_mem_addra = 'h0;
-		d_mem_din   = 'h0;
-		d_mem_we    = 1'b0;
+	    d_mem_addra <= 'h0;
+		d_mem_din   <= 'h0;
+		d_mem_we    <= 1'b0;
 		#10;
 end
 endtask
@@ -141,16 +141,16 @@ endtask
 task send_packets; begin
 	count = 0;
 	while(count != 1000)begin
-	    if(!stall | almfull) begin
-		    {in_ctrl,in_data}   = data_mem[count%66];
+	    if(!stall & ~almfull) begin
+		    {in_ctrl,in_data}   <= data_mem[count%66];
 		    //{in_ctrl,in_data}   = $random()*1000;
-		    in_wr    = 1'b1;
+		    in_wr    <= 1'b1;
 		    #10;
 		    count = (count + 1'b1);
 		end
 		else begin
-		   {in_ctrl,in_data}   = 'h0;
-		   in_wr    = 1'b0;
+		   {in_ctrl,in_data} <= 'h0;
+		   in_wr             <= 1'b0;
 		   /*#80;
 		   if(DROP) force inst_fifo_sram.inst_controller.register_3 = 64'h01;
 		   #40
@@ -161,8 +161,8 @@ task send_packets; begin
 		   //release inst_fifo_sram.inst_controller.register_0;
 		end
 	end
-		d_mem_din   = 'h0;
-		in_wr       = 1'b0;
+		d_mem_din   <= 'h0;
+		in_wr       <= 1'b0;
 		#10;
 end
 endtask
@@ -170,15 +170,15 @@ endtask
 task send_instr; begin
 	count = 0;
 	while(count != NUM_INSTR) begin
-	    i_mem_addra = count;
-		i_mem_din   = istr_mem[count];
-		i_mem_we    = 1'b1;
+	    i_mem_addra <= count;
+		i_mem_din   <= istr_mem[count];
+		i_mem_we    <= 1'b1;
 		#10;
 		count = count + 1'b1;
 	end
-	    i_mem_addra = 'h0;
-		i_mem_din   = 'h0;
-		i_mem_we    = 1'b0;
+	    i_mem_addra <= 'h0;
+		i_mem_din   <= 'h0;
+		i_mem_we    <= 1'b0;
 		#10;
 end
 endtask
@@ -203,7 +203,7 @@ pc_en = 'h0;
 #100
 reset = 1'b0;
 #100
-//pc_en = 1'b1;
+pc_en = 1'b1;
 send_instr();
 send_data();
 out_rdy = 1'b1;

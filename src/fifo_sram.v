@@ -41,18 +41,19 @@
       output [DWIDTH-1:0] fifo_output,
 	  output almfull,
 	  output fifo_empty,
+	  output reg o_full,
 	  output stall
     );
 	 
 	localparam AWIDTH = IAWIDTH-2;
-	wire [AWIDTH-1:0] mux_addr_a,mux_addr_b;
+	wire [IAWIDTH-1:0] mux_addr_a,mux_addr_b;
 	wire [DWIDTH-1:0] mux_dina, fifo_data_out, dout_ctrl;
 	reg [AWIDTH:0] tail_address,head_address;
 	wire full,empty, drop_packet, fifo_sel;
 	//wire stall;
 	
-	assign mux_addr_a = fifo_sel ? tail_address : addra[AWIDTH-1:0];
-	assign mux_addr_b = fifo_sel ? head_address : addrb[AWIDTH-1:0];
+	assign mux_addr_a = fifo_sel ? {2'b01,tail_address[AWIDTH-1:0]} : addra;
+	assign mux_addr_b = fifo_sel ? {2'b01,head_address[AWIDTH-1:0]} : addrb;
 	assign mux_dina =   fifo_sel ?  fifo_input : dina;
 	assign full = (tail_address[AWIDTH-1:0]==head_address[AWIDTH-1:0]) && (tail_address[AWIDTH]!=head_address[AWIDTH]);
 	assign almfull = ((tail_address[AWIDTH-1:0] - head_address[AWIDTH-1:0] > ALM_FULL) && (tail_address[AWIDTH]==head_address[AWIDTH])) | 
@@ -62,7 +63,7 @@
 	always @(posedge clk) begin
 	    if(!reset_n)
      		tail_address <= 0;
-	    else if(wea && (!full))
+	    else if(wea && (!full) && (!mux_addr_a[IAWIDTH-1] & mux_addr_a[IAWIDTH-2]))
 	        tail_address <= tail_address + 1;
 	end
 	
@@ -71,7 +72,7 @@
 		    head_address <= 0;
 		else if(drop_packet)
 		    head_address <= tail_address;
-	    else if(reb && (!empty))
+	    else if(reb)
 	        head_address <=  head_address+1;
 	end
 	
@@ -80,10 +81,10 @@
      .clkb  (clk),
  	 .dina  (mux_dina),
 	 .dinb  (dinb),
-	 .wea   (wea), 
-	 .web   (web), 
-	 .addra (mux_addr_a),
-	 .addrb (mux_addr_b),
+	 .wea   (wea && (!mux_addr_a[IAWIDTH-1] & mux_addr_a[IAWIDTH-2])), 
+	 .web   (web && (!mux_addr_b[IAWIDTH-1] & mux_addr_b[IAWIDTH-2])), 
+	 .addra (mux_addr_a[AWIDTH-1:0]),
+	 .addrb (mux_addr_b[AWIDTH-1:0]),
 	 .douta (fifo_data_out), 
 	 .doutb (fifo_output)
 	);
@@ -116,6 +117,17 @@
 		
 	assign sram_data_out = addra_r[9] ? dout_ctrl : fifo_data_out; 
 	assign fifo_empty = stop_tx | empty;
+	
+	
+	always @(posedge clk) begin
+	    if(!reset_n) begin
+		    o_full <= 1'b0;
+		end
+		else begin
+		    if(full)
+			    o_full <= 1'b1;
+		end
+	end
 endmodule
 
 

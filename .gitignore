@@ -1,0 +1,5 @@
+*.bak
+*.wlf
+*.mpf
+sim/work/
+*mti

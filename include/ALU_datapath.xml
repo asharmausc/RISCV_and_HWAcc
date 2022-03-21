@@ -51,6 +51,11 @@
 			<nf:description>Register to read instruction_data</nf:description>
 			<nf:type>generic_hardware32</nf:type>
 		</nf:register>
+        	<nf:register>
+		  <nf:name>counter</nf:name>
+			<nf:description>Register to read instruction_data</nf:description>
+			<nf:type>generic_hardware32</nf:type>
+		</nf:register>
 	</nf:registers>
 </nf:module>
 
