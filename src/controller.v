@@ -22,7 +22,7 @@ module controller #(
        
 	   output reg fifo_sel,
        output reg drop_packet,
-	   output wire stop_tx,
+	   output reg stop_tx,
        output wire stall
 	);
 	// Internal signals
@@ -36,81 +36,113 @@ module controller #(
 	reg [DWIDTH-1:0] register_3;
 	
 	
-	localparam SEARCH_SOP     = 2'b00;
-	localparam SEARCH_EOP     = 2'b01;
-	localparam ALU_PROCESSING = 2'b10;
-	localparam DRPKT          = 2'b11;
+	localparam SEARCH_SOP     = 3'b000;
+	localparam SEARCH_EOP     = 3'b001;
+	localparam ALU_PROCESSING = 3'b010;
+	localparam DRPKT          = 3'b011;
+	localparam EJECT_PREV_PKT = 3'b100;
 	
 	reg stall_r;
 	reg stall_C;
 	reg drop_packet_C;
 	reg fifo_sel_r;
 	reg fifo_sel_C;
-	reg [1:0] state, next_state;
-	assign stop_tx = (head_addr == register_1) & pc_en ;
+	reg [2:0] state, next_state;
 	
 	reg we_reg0;
 	reg	we_reg1;
+	reg	we_reg2;
 	reg	clr_reg3;
 
 	
+	//assign stop_tx = (head_addr == register_1) & pc_en ;
 	assign stall = stall_C | stall_r; // immediate assertion and synchronous deassertion.
 	
 	always @(*) begin
-		//stall_C      = stall_r;
-		stall_C    = 1'b0;
+		stall_C      = stall_r;
+		//stall_C    = 1'b0;
 		we_reg0    = 1'b0;
 		we_reg1    = 1'b0;
+		we_reg2    = 1'b0;
 		clr_reg3   = 1'b0;
+		stop_tx    = 1'b0;
 		next_state = state;
 		fifo_sel_C = fifo_sel_r;
 		drop_packet_C = drop_packet;
-		case(state)
-		SEARCH_SOP: begin 
-		    stall_C        = 1'b0;
-		    if(i_ctrl == 8'hff && prev_control != 8'hff) begin
-			    we_reg1    = 1'b1;
-				next_state = SEARCH_EOP;
-			end
-		end
-		SEARCH_EOP: begin
-		    if(i_ctrl != 0 && prev_control == 0) begin // End of packet.
-			    stall_C       = 1'b1;
-				we_reg0       = 1'b1; // Indicate start of process.
+		if(pc_en) begin
+		    case(state)
+		    SEARCH_SOP: begin 
+		        stall_C    = 1'b0;
+		    	stop_tx    = (head_addr == register_1);
+		        if(i_ctrl == 8'hff && prev_control != 8'hff) begin
+		    	    we_reg1    = 1'b1;
+		    		next_state = SEARCH_EOP;
+		    	end
+		    end
+		    SEARCH_EOP: begin
+		    	stop_tx    = (head_addr == register_1);
+		    	stall_C       = 1'b0;
+		        if(i_ctrl != 0 && prev_control == 0) begin // End of packet.
+		    	    stall_C       = 1'b1;
+		    		we_reg0       = 1'b1; // Indicate start of process.
+		    		we_reg2       = 1'b1; // Store end of packet
+		    		//fifo_sel_C    = 1'b0;
+					if(stop_tx)
+		    		    next_state    = ALU_PROCESSING;
+                    else
+		    		    next_state    = EJECT_PREV_PKT;
+		    	end
+		    end
+		    ALU_PROCESSING: begin
+		    	stop_tx    = 1'b1;
+		    	stall_C       = 1'b1;
 				fifo_sel_C    = 1'b0;
-				next_state    = ALU_PROCESSING;				
+		        if(register_3 != 0) begin
+		    		next_state    = DRPKT;
+                    drop_packet_C = 1'b1;				
+		    	end 
+		    	else if(register_0 == 0) begin
+		    	    drop_packet_C = 1'b0;
+		    		clr_reg3      = 1'b1;    // Reset the drop packet register
+		    	    //stall_C       = 1'b0;
+		    		fifo_sel_C    = 1'b1;
+		    		if(register_2 == tail_addr-1)
+		    	        next_state = SEARCH_SOP;
+		    		else begin
+		    		    next_state = SEARCH_EOP;
+		    	        we_reg1    = 1'b1;
+		    		end
+		    	end
+		    end
+		    DRPKT: begin
+		    	stall_C       = 1'b1;
+				stop_tx       = 1'b1;
+		    	if(register_0 == 0) begin
+		    	    drop_packet_C = 1'b0;
+		    		clr_reg3      = 1'b1;    // Reset the drop packet register
+		    	    //stall_C       = 1'b0;
+		    		fifo_sel_C    = 1'b1;
+		    		if(register_2 == tail_addr-1)
+		    	        next_state = SEARCH_SOP;
+		    		else begin
+		    		    next_state = SEARCH_EOP;
+		    	        we_reg1    = 1'b1;
+		    		end
+		    	end
+		    end
+			EJECT_PREV_PKT: begin
+		    	stop_tx    = (head_addr == register_1);
+		    	stall_C       = 1'b1;
+				if(stop_tx)
+				    next_state = ALU_PROCESSING;
 			end
-		end
-		ALU_PROCESSING: begin
-			stall_C       = 1'b1;
-		    if(register_3 != 0) begin
-				next_state    = DRPKT;
-                drop_packet_C = 1'b1;				
-			end 
-			else if(register_0 == 0) begin
-			    drop_packet_C = 1'b0;
-				clr_reg3      = 1'b1;    // Reset the drop packet register
-			    //stall_C       = 1'b0;
-				fifo_sel_C    = 1'b1;
-				next_state    = SEARCH_SOP;
-			end
-		end
-		DRPKT: begin
-			stall_C       = 1'b1;
-			if(register_0 == 0) begin
-			    drop_packet_C = 1'b0;
-				clr_reg3      = 1'b1;    // Reset the drop packet register
-			    //stall_C       = 1'b0;
-				fifo_sel_C    = 1'b1;
-			    next_state    = SEARCH_SOP;
-			end
-		end
-		endcase			
+		    endcase
+        end			
 	end
 	
 	
 	always @(posedge clk) begin
-		fifo_sel     <= fifo_sel_r;
+		//fifo_sel     <= fifo_sel_r;
 	    if(!reset_n | !pc_en) begin
 		    state         <= SEARCH_SOP;
 			drop_packet   <= 1'b0;
@@ -121,15 +153,19 @@ module controller #(
 		    register_2    <= 'h0;
 		    register_3    <= 'h0;
             fifo_sel_r    <= 1'b1;
+            fifo_sel      <= 1'b1;
 		end
 		else begin
 		    state        <= next_state;
-			register_2   <= tail_addr;
 		    fifo_sel_r   <= fifo_sel_C;
+		    fifo_sel     <= fifo_sel_C;
 		    prev_control <= i_ctrl;
 			stall_r      <= stall_C;
 		    drop_packet  <= drop_packet_C;
-			
+
+			if(we_reg2) begin // store end of packet.
+			    register_2   <= tail_addr;
+			end
 		    if(we_reg1) begin // Start of packet.
 				register_1    <= tail_addr;
 			end

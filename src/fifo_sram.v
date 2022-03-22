@@ -1,22 +1,8 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date:    22:55:24 03/08/2022 
-// Design Name: 
-// Module Name:    fifo_sram 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
-//
-// Dependencies: 
-//
 // Revision: 
 // Revision 0.01 - File Created
 // Additional Comments: 
-//
 //////////////////////////////////////////////////////////////////////////////////
  
  module fifo_sram #( parameter DWIDTH  = 72,
@@ -52,9 +38,10 @@
 	wire full,empty, drop_packet, fifo_sel;
 	//wire stall;
 	
-	assign mux_addr_a = fifo_sel ? {2'b01,tail_address[AWIDTH-1:0]} : addra;
+	//assign mux_addr_a = fifo_sel ? {2'b01,tail_address[AWIDTH-1:0]} : addra;
+	assign mux_addr_a = {2'b01,tail_address[AWIDTH-1:0]};
 	assign mux_addr_b = fifo_sel ? {2'b01,head_address[AWIDTH-1:0]} : addrb;
-	assign mux_dina =   fifo_sel ?  fifo_input : dina;
+	assign mux_dina =   fifo_input;
 	assign full = (tail_address[AWIDTH-1:0]==head_address[AWIDTH-1:0]) && (tail_address[AWIDTH]!=head_address[AWIDTH]);
 	assign almfull = ((tail_address[AWIDTH-1:0] - head_address[AWIDTH-1:0] > ALM_FULL) && (tail_address[AWIDTH]==head_address[AWIDTH])) | 
 	               (({1'b1,tail_address[AWIDTH-1:0]} - {1'b0, head_address[AWIDTH-1:0]} > ALM_FULL) && (tail_address[AWIDTH]!=head_address[AWIDTH]));
@@ -63,7 +50,7 @@
 	always @(posedge clk) begin
 	    if(!reset_n)
      		tail_address <= 0;
-	    else if(wea && (!full) && (!mux_addr_a[IAWIDTH-1] & mux_addr_a[IAWIDTH-2]))
+	    else if(wea && (!full))
 	        tail_address <= tail_address + 1;
 	end
 	
@@ -93,29 +80,30 @@
 		.AWIDTH (10)
 	) inst_controller
 	(
-	   .clk      (clk),
-	   .pc_en    (pc_en),
-	   .reset_n  (reset_n),
-       .i_ctrl   (fifo_input[71:64]),
-       .tail_addr(tail_address),
-       .head_addr(head_address),
+	   .clk         (clk),
+	   .pc_en       (pc_en),
+	   .reset_n     (reset_n),
+       .i_ctrl      (fifo_input[71:64]),
+       .tail_addr   (tail_address),
+       .head_addr   (head_address),
 	
 	   // Processor side.
-       .wea      (wea),
-       .addra    (addra),
-       .dina     (dina),
-	   .douta     (dout_ctrl),
-	   .stop_tx   (stop_tx),
+       .wea         (web),
+       .addra       (addrb),
+       .dina        (dinb),
+	   .douta       (dout_ctrl),
+	   .stop_tx     (stop_tx),
 	   
 	   .fifo_sel    (fifo_sel),
        .drop_packet (drop_packet),
        .stall       (stall)
 	);
-	reg [IAWIDTH-1:0] addra_r;
+	reg [IAWIDTH-1:0] addrb_r;
 	always @(posedge clk) 
-	    addra_r <= addra;
+	    addrb_r <= addrb;
 		
-	assign sram_data_out = addra_r[9] ? dout_ctrl : fifo_data_out; 
+	//assign sram_data_out = addra_r[9] ? dout_ctrl : fifo_data_out; 
+	assign sram_data_out = addrb_r[9] ? dout_ctrl : fifo_output; 
 	assign fifo_empty = stop_tx | empty;
 	
 	

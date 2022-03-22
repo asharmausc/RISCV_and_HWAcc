@@ -108,11 +108,11 @@ sub istr_write {
 
 sub PC_EN {
    print "Enable PC\n";
-   regwrite( $ALU_PC_EN, 0x001); # Enable the PC
+   regwrite( $ALU_PC_EN, 0x00000001); # Enable the PC
 }
 sub PC_DEN {
    print "DISABLE PC\n";
-   regwrite( $ALU_PC_EN, 0x000); # Enable the PC
+   regwrite( $ALU_PC_EN, 0x00000000); # Enable the PC
 }
 
 sub reset_dev {
@@ -166,7 +166,7 @@ elsif ($cmd eq "alu") {
    istr_write();
 } elsif ($cmd eq "reset") {
    reset_dev();
-} elsif ($cmd eq "pcd") {
+} elsif ($cmd eq "pcen") {
    PC_EN();
 } elsif ($cmd eq "pcd") {
    PC_DEN();
