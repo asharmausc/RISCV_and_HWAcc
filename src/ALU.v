@@ -16,21 +16,57 @@ module ALU(
   // R-type: add,sll,sub
   
   always@(*) begin
-  
+
+    // Branch instructions
+    eq = op0 == op1;
+    gt = op0 > op1;
+    lt = op0 < op1;
+
+    //ADD
     {overflow, ALU_result} <= op0 + op1;
     if(func7[6:5] == 2'b01 && func3 == 3'b000) 
 	    {overflow, ALU_result} <= op0 - op1;
+
+
+
 	//SLL and SLLI
-    else if(func3 == 3'b001) begin
+    else if(func3 == 3'b001) 
+    begin
       ALU_result <= op0 << (op1[4:0]);
     end
-    else if(func3 == 3'b111) begin
+
+    // SLT and SLTI
+    else if(func3 == 3'b010) 
+    begin
+      ALU_result <= lt;
+    end
+
+    // XOR and XORI
+    else if(func3 == 3'b100) 
+    begin
+      ALU_result <= op0 ^ op1;
+    end
+
+    // SRL and SRLI
+    else if(func3 == 3'b101) 
+    begin
+      ALU_result <= op0 >> (op1[4:0]);
+    end
+
+    // OR and ORI
+    else if(func3 == 3'b110) 
+    begin
+      ALU_result <= op0 | op1;
+    end
+
+    // AND and ANDI
+    else if(func3 == 3'b111) 
+    begin
       ALU_result <= op0 & op1;
     end
-	// Branch instructions
-	 eq = op0 == op1;
-	 gt = op0 > op1;
-	 lt = op0 < op1;
+    
+	
   end
 endmodule
+
 
