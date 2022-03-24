@@ -4,6 +4,7 @@ module datapath #(
 	parameter ISTR_WIDTH = 32
   )
   (
+  
     input       clk,
     input       reset_n,
 	
