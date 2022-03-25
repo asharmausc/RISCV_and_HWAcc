@@ -22,6 +22,8 @@ module regx4 #(
     wire [4:0] reg_wraddr2;
     wire [4:0] reg_wraddr3;
     wire [4:0] reg_wraddr4;
+
+    reg [3:0]  thread_sel_ID_r;
 	
 	wire [D_WIDTH-1:0] reg1data_file1;
 	wire [D_WIDTH-1:0] reg2data_file1;

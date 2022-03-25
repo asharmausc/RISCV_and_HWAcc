@@ -67,9 +67,9 @@ module datapath #(
        if(!reset_n) begin
 	       pc         <= 'h0;
 	       pc0        <= 'h0;
-	       pc1        <= 'h0;
-	       pc2        <= 'h0;
-	       pc3        <= 'h0;
+	       pc1        <= 4'h4;
+	       pc2        <= 4'h8;
+	       pc3        <= 4'hc;
            thread_IF  <= 4'b0001;
 	   end
 	   else begin
@@ -138,7 +138,7 @@ module datapath #(
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
     //assign instr_ID = (four_count == 2'b01) ? instr : 'h0;
-    assign instr_ID = instr;
+    assign instr_ID = pc_en ? instr : 'h0;
     decoder inst_decoder(
      .clk     (clk),
      .reset_n (reset_n),

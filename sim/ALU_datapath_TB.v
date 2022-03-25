@@ -5,7 +5,7 @@ module ALU_datapath_TB  ();
 parameter DATA_WIDTH = 64;
 parameter CTRL_WIDTH = DATA_WIDTH/8;
 parameter UDP_REG_SRC_WIDTH = 2;
-localparam NUM_INSTR = 32;
+localparam NUM_INSTR = 64;
 
 localparam DROP = 0;
 
@@ -123,7 +123,7 @@ integer num_data_vals;
 // SEND DATA
 task send_data; begin
 	count = 0;
-	while(count != 2) begin
+	while(count != 5) begin
 	    d_mem_addra <= count;
 		d_mem_din   <= mem_ALU[count];
 		d_mem_we    <= 1'b1;
@@ -203,9 +203,10 @@ pc_en = 'h0;
 #100
 reset = 1'b0;
 #100
-pc_en = 1'b1;
+//pc_en = 1'b1;
 send_instr();
 send_data();
+pc_en = 1'b1;
 out_rdy = 1'b1;
 fork
   send_packets();
