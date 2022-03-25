@@ -27,7 +27,7 @@ module datapath #(
     output [31:0] i_mem_dout
    );
    
-   reg [PC_WIDTH-1:0] pc;
+   reg [PC_WIDTH-1:0] pc, pc0, pc1, pc2, pc3;
    wire [PC_WIDTH-1:0] pc_EX, pc_ID;
    wire [PC_WIDTH-1:0] jump_pc, jump_addr_MEM, jump_addr;
    wire [PC_WIDTH-1:0] branch_addr_MEM, branch_addr;
@@ -42,6 +42,8 @@ module datapath #(
    wire [19:0] joffset_ID;
    wire [19:0] joffset_EX;
    wire [6:0] ctrl_ID, ctrl_EX, ctrl_MEM, ctrl_WB;
+   reg [3:0] thread_IF;
+   wire [3:0] thread_ID, thread_EX, thread_MEM, thread_WB;
    
    wire [D_WIDTH-1:0] reg1data;
    wire [D_WIDTH-1:0] reg2data, reg2data_MEM;
@@ -56,23 +58,58 @@ module datapath #(
    wire [D_WIDTH-1:0] ALU_out_WB, data_MEM;
    
    wire greaterthan, lessthan, equal;
-   wire branch_taken_EX;
-   wire branch_taken_MEM;
+   wire branch_taken_EX, branch_taken_MEM;
    wire branch_taken;
+   
     
-   reg [1:0] four_count;
    // -----------------------------------------
    always @(posedge clk) begin
        if(!reset_n) begin
 	       pc         <= 'h0;
-		   four_count <= 'h0;
+	       pc0        <= 'h0;
+	       pc1        <= 'h0;
+	       pc2        <= 'h0;
+	       pc3        <= 'h0;
+           thread_IF  <= 4'b0001;
 	   end
 	   else begin
 		   if(pc_en) begin
-		       pc <= pc + 1'b1;
-			   four_count <= four_count + 1'b1;
-	           if(branch_taken)
-		           pc <= jump_pc;
+                thread_IF <= thread_IF << 1;
+                case(thread_IF)
+                    4'b0001: begin
+                        pc0 <= pc0 + 4'h4;
+                        pc <= pc0;
+                    end
+                    4'b0010: begin
+                        pc1 <= pc1 + 4'h4;
+                        pc <= pc1;
+                    end
+                    4'b0100: begin
+                        pc2 <= pc2 + 4'h4;
+                        pc <= pc2;
+                    end
+                    4'b1000: begin
+                        pc3 <= pc3 + 4'h4;
+                        pc <= pc3;
+                        thread_IF <= 4'b0001;
+                    end
+                endcase
+	           if(branch_taken) begin
+		           case(thread_MEM)
+                    4'b0001: begin
+                        pc0 <= jump_pc;
+                    end
+                    4'b0010: begin
+                        pc1 <= jump_pc;
+                    end
+                    4'b0100: begin
+                        pc2 <= jump_pc;
+                    end
+                    4'b1000: begin
+                        pc3 <= jump_pc;
+                    end
+                    endcase
+				end
 		   end
 	   end
    end
@@ -90,13 +127,13 @@ module datapath #(
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (PC_WIDTH)
+       .DWIDTH (PC_WIDTH+4)
 	) inst_IF_ID (
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (pc_en),
-	    .i_data ({pc}),
-	    .o_data ({pc_ID})
+	    .i_data ({pc, thread_IF}),
+	    .o_data ({pc_ID, thread_ID})
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
@@ -120,29 +157,37 @@ module datapath #(
 
    assign reg_wraddr = ctrl_WB[0] ? raddr_WB : rs1_ID;
    
-   reg_file inst_reg_file (
-        .addra(reg_wraddr), 
-        .addrb(rs2_ID), 
-        .clka(clk), 
-        .clkb(clk), 
-        .dina(data_WB), 
-        .dinb(), 
-        .wea(ctrl_WB[0]), 
-        .web(1'b0), 
-        .douta(reg1data), 
-        .doutb(reg2data)
-	);
+  regx4 #(
+	.D_WIDTH (64)
+   )
+   inst_regfilex4(
+     .clk    (clk),
+	 .reset_n(reset_n),
 	
+     .data_WB (data_WB),
+	 .ctrl_WB (ctrl_WB[0]),
+	
+	 .reg_wraddr(reg_wraddr),
+	 .rs2_ID    (rs2_ID),
+	
+	 .thread_sel_ID (thread_ID),
+	 .thread_sel_WB (thread_WB),
+	
+	 .reg1data (reg1data),
+	 .reg2data (reg2data)
+
+    );
+   
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (10+7+D_WIDTH+PC_WIDTH+5+20)
+       .DWIDTH (10+7+D_WIDTH+PC_WIDTH+5+20+4)
 	) inst_ID_EXE (
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (pc_en),
-	    .i_data ({joffset_ID, rd_ID, pc_ID, func_ID, sign_immed_ID, ctrl_ID}),
-	    .o_data ({joffset_EX, rd_EX, pc_EX, func_EX, sign_immed_EX, ctrl_EX})
+	    .i_data ({joffset_ID, rd_ID, pc_ID, thread_ID, func_ID, sign_immed_ID, ctrl_ID}),
+	    .o_data ({joffset_EX, rd_EX, pc_EX, thread_EX, func_EX, sign_immed_EX, ctrl_EX})
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
@@ -174,13 +219,13 @@ module datapath #(
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (7+D_WIDTH*2+1+5+PC_WIDTH*2)
+       .DWIDTH (7+D_WIDTH*2+1+5+PC_WIDTH*2+4)
 	)  inst_EXE_MEM(
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (1'b1),
-	    .i_data ({jump_addr, rd_EX, branch_taken_EX, branch_addr, ctrl_EX, reg2data, ALU_out}),
-	    .o_data ({jump_addr_MEM, rd_MEM, branch_taken_MEM, branch_addr_MEM, ctrl_MEM, reg2data_MEM, ALU_out_MEM})
+	    .i_data ({thread_EX, jump_addr, rd_EX, branch_taken_EX, branch_addr, ctrl_EX, reg2data, ALU_out}),
+	    .o_data ({thread_MEM, jump_addr_MEM, rd_MEM, branch_taken_MEM, branch_addr_MEM, ctrl_MEM, reg2data_MEM, ALU_out_MEM})
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
@@ -213,13 +258,13 @@ module datapath #(
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (5+7+D_WIDTH)
+       .DWIDTH (5+7+D_WIDTH+4)
 	)inst_MEM_WB (
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (1'b1),
-	    .i_data ({rd_MEM, ctrl_MEM, ALU_out_MEM}),
-	    .o_data ({raddr_WB, ctrl_WB, ALU_out_WB})
+	    .i_data ({thread_MEM, rd_MEM, ctrl_MEM, ALU_out_MEM}),
+	    .o_data ({thread_WB, raddr_WB, ctrl_WB, ALU_out_WB})
 	);
 	wire [D_WIDTH-1:0] data_MEM_MUX;
 	assign data_MEM_MUX  = |addr_r[9:8] ? mem_datat_in : data_MEM;
