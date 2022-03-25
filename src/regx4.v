@@ -8,6 +8,7 @@ module regx4 #(
 	input ctrl_WB,
 	
 	input [4:0] reg_wraddr,
+	input [4:0] rs1_ID,
 	input [4:0] rs2_ID,
 	
 	input [3:0] thread_sel_ID,
@@ -17,7 +18,11 @@ module regx4 #(
 	output reg [D_WIDTH-1:0] reg2data
 
 );
-
+    wire [4:0] reg_wraddr1;
+    wire [4:0] reg_wraddr2;
+    wire [4:0] reg_wraddr3;
+    wire [4:0] reg_wraddr4;
+	
 	wire [D_WIDTH-1:0] reg1data_file1;
 	wire [D_WIDTH-1:0] reg2data_file1;
 	
@@ -31,9 +36,9 @@ module regx4 #(
 	wire [D_WIDTH-1:0] reg2data_file4;
 
 
-
+   assign reg_wraddr1 = (ctrl_WB & thread_sel_WB[0]) ? reg_wraddr : rs1_ID;
    reg_file inst_reg_file_1 (
-        .addra(reg_wraddr), 
+        .addra(reg_wraddr1), 
         .addrb(rs2_ID), 
         .clka(clk), 
         .clkb(clk), 
@@ -44,9 +49,10 @@ module regx4 #(
         .douta(reg1data_file1), 
         .doutb(reg2data_file1)
 	);
-	
+
+   assign reg_wraddr2 = (ctrl_WB & thread_sel_WB[1]) ? reg_wraddr : rs1_ID;
    reg_file inst_reg_file_2 (
-        .addra(reg_wraddr), 
+        .addra(reg_wraddr2), 
         .addrb(rs2_ID), 
         .clka(clk), 
         .clkb(clk), 
@@ -57,9 +63,10 @@ module regx4 #(
         .douta(reg1data_file2), 
         .doutb(reg2data_file2)
 	);
-
+	
+   assign reg_wraddr3 = (ctrl_WB & thread_sel_WB[2]) ? reg_wraddr : rs1_ID;
    reg_file inst_reg_file_3 (
-        .addra(reg_wraddr), 
+        .addra(reg_wraddr3), 
         .addrb(rs2_ID), 
         .clka(clk), 
         .clkb(clk), 
@@ -70,9 +77,10 @@ module regx4 #(
         .douta(reg1data_file3), 
         .doutb(reg2data_file3)
 	);
-
+	
+   assign reg_wraddr4 = (ctrl_WB & thread_sel_WB[3]) ? reg_wraddr : rs1_ID;
    reg_file inst_reg_file_4 (
-        .addra(reg_wraddr), 
+        .addra(reg_wraddr4), 
         .addrb(rs2_ID), 
         .clka(clk), 
         .clkb(clk), 

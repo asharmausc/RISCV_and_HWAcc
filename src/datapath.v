@@ -137,7 +137,8 @@ module datapath #(
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
-    assign instr_ID = (four_count == 2'b01) ? instr : 'h0;
+    //assign instr_ID = (four_count == 2'b01) ? instr : 'h0;
+    assign instr_ID = instr;
     decoder inst_decoder(
      .clk     (clk),
      .reset_n (reset_n),
@@ -155,7 +156,7 @@ module datapath #(
    
    assign sign_immed_ID = (ctrl_ID[6])? ({{32{joffset_ID[19]}},joffset_ID,{12{1'b0}}}) : {{52{immed_ID[11]}}, immed_ID};
 
-   assign reg_wraddr = ctrl_WB[0] ? raddr_WB : rs1_ID;
+   //assign reg_wraddr = ctrl_WB[0] ? raddr_WB : rs1_ID;
    
   regx4 #(
 	.D_WIDTH (64)
@@ -167,7 +168,8 @@ module datapath #(
      .data_WB (data_WB),
 	 .ctrl_WB (ctrl_WB[0]),
 	
-	 .reg_wraddr(reg_wraddr),
+	 .reg_wraddr(raddr_WB),
+	 .rs1_ID    (rs1_ID),
 	 .rs2_ID    (rs2_ID),
 	
 	 .thread_sel_ID (thread_ID),
