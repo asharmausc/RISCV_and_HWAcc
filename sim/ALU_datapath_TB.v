@@ -103,9 +103,9 @@ always #5 clk = ~clk;
    
 
 // memory
-reg [31:0] istr_mem [50:0];
-reg [71:0] data_mem [70:0];
-reg [71:0] mem_ALU [50:0];
+reg [31:0] istr_mem [100:0];
+reg [71:0] data_mem [100:0];
+reg [71:0] mem_ALU [100:0];
 initial begin
     $readmemh("dump.txt",istr_mem);
 	#100
@@ -206,8 +206,8 @@ reset = 1'b0;
 //pc_en = 1'b1;
 send_instr();
 send_data();
-pc_en = 1'b1;
-out_rdy = 1'b1;
+pc_en <= 1'b1;
+out_rdy <= 1'b1;
 fork
   send_packets();
   pc_en = 32'h1;

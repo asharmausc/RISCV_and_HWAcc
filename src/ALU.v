@@ -17,15 +17,15 @@ module ALU(
   
   always@(*) begin
   
-    {overflow, ALU_result} <= op0 + op1;
+    {overflow, ALU_result} = op0 + op1;
     if(func7[6:5] == 2'b01 && func3 == 3'b000) 
-	    {overflow, ALU_result} <= op0 - op1;
+	    {overflow, ALU_result} = op0 - op1;
 	//SLL and SLLI
     else if(func3 == 3'b001) begin
-      ALU_result <= op0 << (op1[4:0]);
+      ALU_result = op0 << (op1[4:0]);
     end
     else if(func3 == 3'b111) begin
-      ALU_result <= op0 & op1;
+      ALU_result = op0 & op1;
     end
 	// Branch instructions
 	 eq = op0 == op1;

@@ -61,11 +61,18 @@ module datapath #(
    wire branch_taken_EX, branch_taken_MEM;
    wire branch_taken;
    
-    
+   always @(*) begin				 
+        case(thread_IF)
+         4'b0001: pc = pc0;
+         4'b0010: pc = pc1;
+         4'b0100: pc = pc2;
+         4'b1000: pc = pc3;
+         default: pc = 32'hFFFFFFFF;
+        endcase
+	end
    // -----------------------------------------
    always @(posedge clk) begin
        if(!reset_n) begin
-	       pc         <= 'h0;
 	       pc0        <= 'h0;
 	       pc1        <= 4'h4;
 	       pc2        <= 4'h8;
@@ -74,23 +81,19 @@ module datapath #(
 	   end
 	   else begin
 		   if(pc_en) begin
-                thread_IF <= thread_IF << 1;
+                thread_IF <= thread_IF << 1;					 
                 case(thread_IF)
                     4'b0001: begin
                         pc0 <= pc0 + 4'h4;
-                        pc <= pc0;
                     end
                     4'b0010: begin
                         pc1 <= pc1 + 4'h4;
-                        pc <= pc1;
                     end
                     4'b0100: begin
                         pc2 <= pc2 + 4'h4;
-                        pc <= pc2;
                     end
                     4'b1000: begin
                         pc3 <= pc3 + 4'h4;
-                        pc <= pc3;
                         thread_IF <= 4'b0001;
                     end
                 endcase
