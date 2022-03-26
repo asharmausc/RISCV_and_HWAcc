@@ -5,7 +5,7 @@ module ALU_datapath_TB  ();
 parameter DATA_WIDTH = 64;
 parameter CTRL_WIDTH = DATA_WIDTH/8;
 parameter UDP_REG_SRC_WIDTH = 2;
-localparam NUM_INSTR = 64;
+localparam NUM_INSTR = 76;
 
 localparam DROP = 0;
 

@@ -81,7 +81,9 @@ module datapath #(
 	   end
 	   else begin
 		   if(pc_en) begin
-                thread_IF <= thread_IF << 1;					 
+                thread_IF <= thread_IF << 1;
+                if(thread_IF == 4'b1000)
+                    thread_IF <= 4'b0001;				
                 case(thread_IF)
                     4'b0001: begin
                         pc0 <= pc0 + 4'h4;
@@ -94,8 +96,14 @@ module datapath #(
                     end
                     4'b1000: begin
                         pc3 <= pc3 + 4'h4;
-                        thread_IF <= 4'b0001;
+                        //thread_IF <= 4'b0001;
                     end
+					default: begin
+					    pc0 <= pc0;
+						pc1 <= pc1;
+						pc2 <= pc2;
+						pc3 <= pc3;
+					end
                 endcase
 	           if(branch_taken) begin
 		           case(thread_MEM)
@@ -141,7 +149,7 @@ module datapath #(
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
     //assign instr_ID = (four_count == 2'b01) ? instr : 'h0;
-    assign instr_ID = pc_en ? instr : 'h0;
+    assign instr_ID = instr;
     decoder inst_decoder(
      .clk     (clk),
      .reset_n (reset_n),
