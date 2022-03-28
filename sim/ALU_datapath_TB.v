@@ -5,7 +5,7 @@ module ALU_datapath_TB  ();
 parameter DATA_WIDTH = 64;
 parameter CTRL_WIDTH = DATA_WIDTH/8;
 parameter UDP_REG_SRC_WIDTH = 2;
-localparam NUM_INSTR = 76;
+localparam NUM_INSTR = 64;
 
 localparam DROP = 0;
 
@@ -213,7 +213,7 @@ fork
   pc_en = 32'h1;
 join
 #200
-pc_en = 32'h0;
+//pc_en = 32'h0;
 #20
 send_packets();
 #10000;

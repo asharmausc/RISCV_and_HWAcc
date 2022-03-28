@@ -20,7 +20,7 @@
 `timescale 1ns/1ps
 module reg_file #(
      parameter integer DWIDTH = 64,
-	  parameter integer AWIDTH = 5,
+	  parameter integer AWIDTH = 6,
 	  parameter integer DEPTH  = 2**AWIDTH
 	 )
    (

@@ -45,20 +45,29 @@ module datapath #(
    reg [3:0] thread_IF;
    wire [3:0] thread_ID, thread_EX, thread_MEM, thread_WB;
    
-   wire [D_WIDTH-1:0] reg1data;
-   wire [D_WIDTH-1:0] reg2data, reg2data_MEM;
+   wire [D_WIDTH-1:0] reg1data1;
+   wire [D_WIDTH-1:0] reg1data2;
+   wire [D_WIDTH-1:0] reg2data1, reg2data_MEM1;
+   reg  [D_WIDTH-1:0] reg2data_MEM;
+   wire [D_WIDTH-1:0] reg2data2, reg2data_MEM2;
    wire [D_WIDTH-1:0] data_WB;
    wire [D_WIDTH-1:0] sign_immed_ID;
    wire [D_WIDTH-1:0] sign_immed_EX;
    wire [ISTR_WIDTH-1:0] sign_immed_auipc;
-   wire [D_WIDTH-1:0] alu_op0;
-   wire [D_WIDTH-1:0] alu_op1;
-   wire [D_WIDTH-1:0] ALU_out;
-   wire [D_WIDTH-1:0] ALU_out_MEM;
+   wire [D_WIDTH-1:0] alu_op01, alu_op02;
+   wire [D_WIDTH-1:0] alu_op11, alu_op12;
+   wire [D_WIDTH-1:0] ALU_out1;
+   wire [D_WIDTH-1:0] ALU_out2;
+   reg  [D_WIDTH-1:0] ALU_out_MEM;
+   wire [D_WIDTH-1:0] ALU_out_MEM1, ALU_out_MEM2;
    wire [D_WIDTH-1:0] ALU_out_WB, data_MEM;
    
-   wire greaterthan, lessthan, equal;
-   wire branch_taken_EX, branch_taken_MEM;
+   wire greaterthan1, lessthan1, equal1;
+   wire greaterthan2, lessthan2, equal2;
+   wire branch_taken_EX1;
+   reg  branch_taken_MEM;
+   wire branch_taken_MEM1;
+   wire branch_taken_EX2, branch_taken_MEM2;
    wire branch_taken;
    
    always @(*) begin				 
@@ -96,7 +105,6 @@ module datapath #(
                     end
                     4'b1000: begin
                         pc3 <= pc3 + 4'h4;
-                        //thread_IF <= 4'b0001;
                     end
 					default: begin
 					    pc0 <= pc0;
@@ -169,7 +177,7 @@ module datapath #(
 
    //assign reg_wraddr = ctrl_WB[0] ? raddr_WB : rs1_ID;
    
-  regx4 #(
+   regx4 #(
 	.D_WIDTH (64)
    )
    inst_regfilex4(
@@ -185,9 +193,12 @@ module datapath #(
 	
 	 .thread_sel_ID (thread_ID),
 	 .thread_sel_WB (thread_WB),
-	
-	 .reg1data (reg1data),
-	 .reg2data (reg2data)
+	 
+	 .reg1data1 (reg1data1),
+	 .reg2data1 (reg2data1),
+	 
+	 .reg1data2 (reg1data2),
+	 .reg2data2 (reg2data2)
 
     );
    
@@ -204,45 +215,89 @@ module datapath #(
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
-	assign alu_op1 = (ctrl_EX[3] & !ctrl_EX[5]) ? sign_immed_EX : reg2data;
-	assign alu_op0 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data;
-	assign branch_taken_EX = ctrl_EX[5] & (((func_EX[2:0] == 3'b000) & equal) |
-                                           ((func_EX[2:0] == 3'b001) & !equal) |	
-	                                ((func_EX[2:0] == 3'b100) & lessthan) |
-									((func_EX[2:0] == 3'b101) & (greaterthan | equal)));
-    
+	
+	assign alu_op11 = (ctrl_EX[3] & !ctrl_EX[5]) ? sign_immed_EX : reg2data1;
+	assign alu_op01 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data1;
+	
+	assign alu_op12 = (ctrl_EX[3] & !ctrl_EX[5]) ? sign_immed_EX : reg2data2;
+	assign alu_op02 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data2;
+	
+	assign branch_taken_EX1 = ctrl_EX[5] & (((func_EX[2:0] == 3'b000) & equal1) |
+                                           ((func_EX[2:0] == 3'b001) & !equal1) |	
+	                                ((func_EX[2:0] == 3'b100) & lessthan1) |
+									((func_EX[2:0] == 3'b101) & (greaterthan1 | equal1)));
+									
+	assign branch_taken_EX2 = ctrl_EX[5] & (((func_EX[2:0] == 3'b000) & equal2) |
+                                           ((func_EX[2:0] == 3'b001) & !equal2) |	
+	                                ((func_EX[2:0] == 3'b100) & lessthan2) |
+									((func_EX[2:0] == 3'b101) & (greaterthan2 | equal2)));
+									
     assign branch_addr = (pc_EX) + {sign_immed_EX[30:0], 1'b0};
 	// --- ALU ---
-	ALU inst_ALU (
-      .op0   (alu_op0),
-      .op1   (alu_op1),
+	ALU inst_ALU1 (
+      .op0   (alu_op01),
+      .op1   (alu_op11),
       .func3 (func_EX[2:0]),
       .func7 (func_EX[9:3]),
 	  .ctrl  (ctrl_EX),
   
-      .ALU_result(ALU_out),
+      .ALU_result(ALU_out1),
 	  .overflow  ( ),
-      .eq        (equal),
-      .lt        (lessthan),
-      .gt        (greaterthan)
+      .eq        (equal1),
+      .lt        (lessthan1),
+      .gt        (greaterthan1)
 	);
-
+	// --- ALU ---
+	ALU inst_ALU2 (
+      .op0   (alu_op02),
+      .op1   (alu_op12),
+      .func3 (func_EX[2:0]),
+      .func7 (func_EX[9:3]),
+	  .ctrl  (ctrl_EX),
+  
+      .ALU_result(ALU_out2),
+	  .overflow  ( ),
+      .eq        (equal2),
+      .lt        (lessthan2),
+      .gt        (greaterthan2)
+	);
 	assign jump_addr = {{12{joffset_EX[19]}}, joffset_EX[18:0], 1'b0} + (pc_EX);
 	
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
        .DWIDTH (7+D_WIDTH*2+1+5+PC_WIDTH*2+4)
-	)  inst_EXE_MEM(
+	)  inst_EXE_MEM1(
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (1'b1),
-	    .i_data ({thread_EX, jump_addr, rd_EX, branch_taken_EX, branch_addr, ctrl_EX, reg2data, ALU_out}),
-	    .o_data ({thread_MEM, jump_addr_MEM, rd_MEM, branch_taken_MEM, branch_addr_MEM, ctrl_MEM, reg2data_MEM, ALU_out_MEM})
+	    .i_data ({thread_EX, jump_addr, rd_EX, branch_taken_EX1, branch_addr, ctrl_EX, reg2data1, ALU_out1}),
+	    .o_data ({thread_MEM, jump_addr_MEM, rd_MEM, branch_taken_MEM1, branch_addr_MEM, ctrl_MEM, reg2data_MEM1, ALU_out_MEM1})
+	);
+    pipelinereg # (
+       .DWIDTH (D_WIDTH*2+1)
+	)  inst_EXE_MEM2(
+	    .clk    (clk),
+	    .reset_n(reset_n),
+	    .en     (1'b1),
+	    .i_data ({branch_taken_EX2, reg2data2, ALU_out2}),
+	    .o_data ({branch_taken_MEM2, reg2data_MEM2, ALU_out_MEM2})
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
-   
+	always @(*) begin
+	    if(thread_MEM[0] | thread_MEM[2]) begin
+            reg2data_MEM     = reg2data_MEM1;
+            ALU_out_MEM      = ALU_out_MEM1;
+			branch_taken_MEM = branch_taken_MEM1;
+		end
+	    else begin // if(thread_MEM[1] | thread_MEM[3]) begin
+            reg2data_MEM     = reg2data_MEM2;
+            ALU_out_MEM      = ALU_out_MEM2;
+			branch_taken_MEM = branch_taken_MEM2;
+		end
+	end
+	
    assign jump_pc = ctrl_MEM[4] ? jump_addr_MEM : branch_addr_MEM;
    assign branch_taken = (ctrl_MEM[5] & branch_taken_MEM) | ctrl_MEM[4];
    
