@@ -55,18 +55,6 @@ unsigned long long xor_1(unsigned long long x, unsigned long long y) {
     return x^y;
 }
 
-void baseEncrypt(unsigned long long *d1, unsigned long long *d2, unsigned long long *d3, unsigned long long *d4, int step_key){
-    unsigned long long Rox1 = xnor(*d1, step_key) & 0x0ffff;
-    unsigned long long Rox2 = xor_1(f_function(Rox1), *d3)  & 0x0ffff;
-    unsigned long long Rox4 = xnor(*d4, step_key) & 0x0ffff;
-    unsigned long long Rox3 = xor_1(f_function(Rox4), *d2)  & 0x0ffff;
-
-    *d1 = Rox1;
-    *d2 = Rox2;
-    *d3 = Rox3;
-    *d4 = Rox4;
-}
-
 void baseDecrypt(unsigned long long *d1, unsigned long long *d2, unsigned long long *d3, unsigned long long *d4, int step_key){
     unsigned long long Rox1 = xnor(*d1, step_key) & 0x0ffff;
     unsigned long long Rox2 = xor_1(f_function(*d4), *d3)  & 0x0ffff;
@@ -77,22 +65,6 @@ void baseDecrypt(unsigned long long *d1, unsigned long long *d2, unsigned long l
     *d2 = Rox2;
     *d3 = Rox3;
     *d4 = Rox4;
-}
-
-unsigned long long encrypt(long long data, long int k1, long int k2, long int k3, long int k4, long int k5) {
-    unsigned long long d1 = (data & 0x0ffff);
-    unsigned long long d2 = ((data >> 16) & 0x0ffff);
-    unsigned long long d3 = ((data >> 32) & 0x0ffff);
-    unsigned long long d4 = ((data >> 48) & 0x0ffff);
-
-    baseEncrypt(&d1, &d2, &d3, &d4, k1);
-    baseEncrypt(&d2, &d1, &d4, &d3, k2);
-    baseEncrypt(&d1, &d2, &d3, &d4, k3);
-    baseEncrypt(&d2, &d1, &d4, &d3, k4);
-    baseEncrypt(&d1, &d2, &d3, &d4, k5);    
-    
-    unsigned long long output = (d4 << 48) | (d3 << 32) | (d2 << 16) | (d1);
-    return output;
 }
 
 unsigned long long decrypt(long long data, long int k1, long int k2, long int k3, long int k4, long int k5) {
@@ -112,14 +84,56 @@ unsigned long long decrypt(long long data, long int k1, long int k2, long int k3
 }
 
 int main(int argc, char * argv[]){
+    //Key Generation
     unsigned long long ini_seed = 0x0123456789abcdef;
     int k1, k2, k3, k4, k5;
+    unsigned int key = keygen(ini_seed, &k1, &k2, &k3, &k4, &k5);
+
+    //F-function: P/Q Tables
+    int P_table [16] = {3, 15, 14, 0,  5, 4, 11, 12, 13, 10, 9,  6, 7,  8, 2, 1};
+    int Q_table [16] = {9, 14,  5, 6, 10, 2,  3, 12, 15,  0, 4, 13, 7, 11, 1, 8};
+
+    //Input message from command line
     unsigned long long input = strtoull(argv[1], NULL, 16);
     printf("The initial message is: %lx\n", input);
-    unsigned int key = keygen(ini_seed, &k1, &k2, &k3, &k4, &k5);
-    unsigned long long encrypted = encrypt(input, k1, k2, k3, k4, k5);
-    printf("The encrypted message is: %lx\n", encrypted);
-    unsigned long long decrypted = decrypt(encrypted, k1, k2, k3, k4, k5);
-    printf("The decrypted message is: %lx\n", decrypted);
+
+    //Encryption
+    unsigned long long d1_0 = (input & 0x0ffff);
+    unsigned long long d2_0 = ((input >> 16) & 0x0ffff);
+    unsigned long long d3_0 = ((input >> 32) & 0x0ffff);
+    unsigned long long d4_0 = ((input >> 48) & 0x0ffff);
+
+    unsigned long long d1_1 = xnor(d1_0, k1) & 0x0ffff;
+    unsigned long long d2_1 = xor_1(f_function(d1_1), d3_0)  & 0x0ffff;
+    unsigned long long d4_1 = xnor(d4_0, k1) & 0x0ffff;
+    unsigned long long d3_1 = xor_1(f_function(d4_1), d2_0)  & 0x0ffff;
+
+    unsigned long long d1_2 = xnor(d2_1, k2) & 0x0ffff;
+    unsigned long long d2_2 = xor_1(f_function(d1_2), d4_1)  & 0x0ffff;
+    unsigned long long d4_2 = xnor(d3_1, k2) & 0x0ffff;
+    unsigned long long d3_2 = xor_1(f_function(d4_2), d1_1)  & 0x0ffff;
+
+    unsigned long long d1_3 = xnor(d2_2, k3) & 0x0ffff;
+    unsigned long long d2_3 = xor_1(f_function(d1_3), d4_2)  & 0x0ffff;
+    unsigned long long d4_3 = xnor(d3_2, k3) & 0x0ffff;
+    unsigned long long d3_3 = xor_1(f_function(d4_3), d1_2)  & 0x0ffff;
+
+    unsigned long long d1_4 = xnor(d2_3, k4) & 0x0ffff;
+    unsigned long long d2_4 = xor_1(f_function(d1_4), d4_3)  & 0x0ffff;
+    unsigned long long d4_4 = xnor(d3_3, k4) & 0x0ffff;
+    unsigned long long d3_4 = xor_1(f_function(d4_4), d1_3)  & 0x0ffff;
+
+    unsigned long long d1_5 = xnor(d2_4, k5) & 0x0ffff;
+    unsigned long long d2_5 = xor_1(f_function(d1_5), d4_4)  & 0x0ffff;
+    unsigned long long d4_5 = xnor(d3_4, k5) & 0x0ffff;
+    unsigned long long d3_5 = xor_1(f_function(d4_5), d1_4)  & 0x0ffff;
+
+    unsigned long long output = (d4_5 << 48) | (d3_5 << 32) | (d2_5 << 16) | (d1_5);
+    printf("The encrypted message is: %lx\n", output);
+    
+    //Decryption
+    //unsigned long long decrypted = decrypt(output, k1, k2, k3, k4, k5);    
+    //printf("The decrypted message is: %lx\n", decrypted);
+
     return 0;
 }
