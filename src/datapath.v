@@ -4,6 +4,7 @@ module datapath #(
 	parameter ISTR_WIDTH = 32
   )
   (
+  
     input       clk,
     input       reset_n,
 	
@@ -44,7 +45,7 @@ module datapath #(
    wire [6:0] ctrl_ID, ctrl_EX, ctrl_MEM, ctrl_WB;
    
    wire [D_WIDTH-1:0] reg1data;
-   wire [D_WIDTH-1:0] reg2data, reg2data_MEM;
+   wire [D_WIDTH-1:0] reg2data, reg2data_MEM, mem_write_data;
    wire [D_WIDTH-1:0] data_WB;
    wire [D_WIDTH-1:0] sign_immed_ID;
    wire [D_WIDTH-1:0] sign_immed_EX;
@@ -55,7 +56,7 @@ module datapath #(
    wire [D_WIDTH-1:0] ALU_out_MEM;
    wire [D_WIDTH-1:0] ALU_out_WB, data_MEM;
    
-   wire greaterthan, lessthan, equal;
+   wire greaterthan, lessthan, equal,byte_op,byte_op_MEM,byte_op_WB;
    wire branch_taken_EX;
    wire branch_taken_MEM;
    wire branch_taken;
@@ -166,7 +167,8 @@ module datapath #(
 	  .overflow  ( ),
       .eq        (equal),
       .lt        (lessthan),
-      .gt        (greaterthan)
+      .gt        (greaterthan),
+      .byte_op   (byte_op)
 	);
 
 	assign jump_addr = {{12{joffset_EX[19]}}, joffset_EX[18:0], 1'b0} + (pc_EX);
@@ -174,13 +176,13 @@ module datapath #(
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (7+D_WIDTH*2+1+5+PC_WIDTH*2)
+       .DWIDTH (7+D_WIDTH*2+1+5+PC_WIDTH*2+1)
 	)  inst_EXE_MEM(
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (1'b1),
-	    .i_data ({jump_addr, rd_EX, branch_taken_EX, branch_addr, ctrl_EX, reg2data, ALU_out}),
-	    .o_data ({jump_addr_MEM, rd_MEM, branch_taken_MEM, branch_addr_MEM, ctrl_MEM, reg2data_MEM, ALU_out_MEM})
+	    .i_data ({jump_addr, rd_EX, branch_taken_EX, branch_addr, ctrl_EX, reg2data, ALU_out,byte_op}),
+	    .o_data ({jump_addr_MEM, rd_MEM, branch_taken_MEM, branch_addr_MEM, ctrl_MEM, reg2data_MEM, ALU_out_MEM,byte_op_MEM})
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
@@ -192,7 +194,7 @@ module datapath #(
    assign mem_we = ctrl_MEM[1];
    assign mem_addr_out = ALU_out_MEM;
    assign mem_data_out = reg2data_MEM;
-   
+   assign mem_write_data = byte_op_MEM ? {{56{reg2data_MEM[7]}},reg2data_MEM[7:0]} : reg2data_MEM;
    reg [PC_WIDTH-1:0] addr_r;
    always @(posedge clk) 
        addr_r <= ALU_out_MEM;
@@ -203,7 +205,7 @@ module datapath #(
                   .addrb(d_mem_addra[7:0]), 
                   .clka(clk), 
                   .clkb(clk), 
-                  .dina(reg2data_MEM), 
+                  .dina(mem_write_data), 
                   .dinb(d_mem_din[63:0]), 
                   .wea(ctrl_MEM[1]& !ALU_out_MEM[9:8]), 
                   .web(d_mem_we),     // user interface with port B of memory.
@@ -213,16 +215,18 @@ module datapath #(
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (5+7+D_WIDTH)
+       .DWIDTH (5+7+D_WIDTH+1)
 	)inst_MEM_WB (
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (1'b1),
-	    .i_data ({rd_MEM, ctrl_MEM, ALU_out_MEM}),
-	    .o_data ({raddr_WB, ctrl_WB, ALU_out_WB})
+	    .i_data ({rd_MEM, ctrl_MEM, ALU_out_MEM, byte_op_MEM}),
+	    .o_data ({raddr_WB, ctrl_WB, ALU_out_WB, byte_op_WB})
 	);
 	wire [D_WIDTH-1:0] data_MEM_MUX;
-	assign data_MEM_MUX  = |addr_r[9:8] ? mem_datat_in : data_MEM;
+    wire [D_WIDTH-1:0] data_MEM_final;
+    assign data_MEM_final      = (byte_op_WB) ? {{56{data_MEM[7]}},data_MEM[7:0]} : data_MEM;
+	assign data_MEM_MUX  = |addr_r[9:8] ? mem_datat_in : data_MEM_final;
 	assign data_WB       = ctrl_WB[2] ? data_MEM_MUX : ALU_out_WB;
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
