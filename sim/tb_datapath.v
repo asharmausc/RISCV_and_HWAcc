@@ -23,13 +23,13 @@
 module tb_datapath(
     );
 
-localparam NUM_INSTR = 32;
+localparam NUM_INSTR = 179 ;
 reg clk = 1'b0;
 reg reset_n = 1'b1;
 reg pc_en = 1'b0;
 
 // memory
-reg [31:0] istr_mem [99:0];
+reg [31:0] istr_mem [NUM_INSTR:0];
 reg [63:0] data_mem [511:0];
 initial begin
     $readmemh("dump.txt",istr_mem);
@@ -74,8 +74,8 @@ always #5 clk = ~clk;
 		.reset_n    (reset_n), 
 		.clk        (clk)
      );
-	  
-/*	assign i_mem_din = istr_mem[i_mem_addra];
+	/*  
+	assign i_mem_din = istr_mem[i_mem_addra];
 	assign i_mem_we  = reset_n & (i_mem_addra < NUM_INSTR);
 	always @(posedge clk) begin
 	    if(!reset_n) begin
@@ -87,14 +87,14 @@ always #5 clk = ~clk;
 			else
 			pc_en <= 1'b1;
 		end
-	end
-*/
+	end */
+
 integer count;
 integer num_data_vals;
 task send_data; begin
-    num_data_vals = data_mem[0];
+  //  num_data_vals = data_mem[0];
 	count = 0;
-	while(count != num_data_vals+1) begin
+	while(count != 40) begin
 	    d_mem_addra = count;
 		d_mem_din   = data_mem[count];
 		d_mem_we    = 1'b1;
@@ -106,8 +106,9 @@ task send_data; begin
 		d_mem_we    = 1'b0;
 		#10;
 end
-endtask
+endtask 
 
+//integer count;
 task send_instr; begin
 	count = 0;
 	while(count != NUM_INSTR) begin
@@ -124,6 +125,7 @@ task send_instr; begin
 end
 endtask
 
+
 task read_data; begin
   count  = 0;
   num_data_vals = data_mem[0];
@@ -137,18 +139,23 @@ task read_data; begin
 end
 endtask
 
+
+
 initial begin
 reset_n = 1'b0;
-#100
+
+#100 
 reset_n = 1'b1;
-#100
-//pc_en = 1'b1;
+#10
 send_data();
+
+#100 
 send_instr();
 pc_en = 1'b1;
-#21000;
-read_data();
+#510;
+//read_data();
 $stop;
 end
 
 endmodule
+
