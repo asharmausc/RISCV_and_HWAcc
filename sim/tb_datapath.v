@@ -23,7 +23,7 @@
 module tb_datapath(
     );
 
-localparam NUM_INSTR = 174 ;
+localparam NUM_INSTR = 179 ;
 reg clk = 1'b0;
 reg reset_n = 1'b1;
 reg pc_en = 1'b0;
@@ -94,7 +94,7 @@ integer num_data_vals;
 task send_data; begin
   //  num_data_vals = data_mem[0];
 	count = 0;
-	while(count != 39) begin
+	while(count != 40) begin
 	    d_mem_addra = count;
 		d_mem_din   = data_mem[count];
 		d_mem_we    = 1'b1;

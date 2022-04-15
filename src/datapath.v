@@ -4,7 +4,6 @@ module datapath #(
 	parameter ISTR_WIDTH = 32
   )
   (
-  
     input       clk,
     input       reset_n,
 	
@@ -28,7 +27,7 @@ module datapath #(
     output [31:0] i_mem_dout
    );
    
-   reg [PC_WIDTH-1:0] pc;
+   reg [PC_WIDTH-1:0] pc, pc0, pc1, pc2, pc3;
    wire [PC_WIDTH-1:0] pc_EX, pc_ID;
    wire [PC_WIDTH-1:0] jump_pc, jump_addr_MEM, jump_addr;
    wire [PC_WIDTH-1:0] branch_addr_MEM, branch_addr;
@@ -43,37 +42,93 @@ module datapath #(
    wire [19:0] joffset_ID;
    wire [19:0] joffset_EX;
    wire [6:0] ctrl_ID, ctrl_EX, ctrl_MEM, ctrl_WB;
+   reg [3:0] thread_IF;
+   wire [3:0] thread_ID, thread_EX, thread_MEM, thread_WB;
    
-   wire [D_WIDTH-1:0] reg1data;
-   wire [D_WIDTH-1:0] reg2data, reg2data_MEM, mem_write_data;
+   wire [D_WIDTH-1:0] reg1data1;
+   wire [D_WIDTH-1:0] reg1data2;
+   wire [D_WIDTH-1:0] reg2data1, reg2data_MEM1;
+   reg  [D_WIDTH-1:0] reg2data_MEM;
+   wire [D_WIDTH-1:0] reg2data2, reg2data_MEM2;
    wire [D_WIDTH-1:0] data_WB;
    wire [D_WIDTH-1:0] sign_immed_ID;
    wire [D_WIDTH-1:0] sign_immed_EX;
    wire [ISTR_WIDTH-1:0] sign_immed_auipc;
-   wire [D_WIDTH-1:0] alu_op0;
-   wire [D_WIDTH-1:0] alu_op1;
-   wire [D_WIDTH-1:0] ALU_out;
-   wire [D_WIDTH-1:0] ALU_out_MEM;
+   wire [D_WIDTH-1:0] alu_op01, alu_op02;
+   wire [D_WIDTH-1:0] alu_op11, alu_op12;
+   wire [D_WIDTH-1:0] ALU_out1;
+   wire [D_WIDTH-1:0] ALU_out2;
+   reg  [D_WIDTH-1:0] ALU_out_MEM;
+   wire [D_WIDTH-1:0] ALU_out_MEM1, ALU_out_MEM2;
    wire [D_WIDTH-1:0] ALU_out_WB, data_MEM;
    
-   wire greaterthan, lessthan, equal,byte_op,byte_op_MEM,byte_op_WB;
-   wire branch_taken_EX;
-   wire branch_taken_MEM;
+   wire greaterthan1, lessthan1, equal1;
+   wire greaterthan2, lessthan2, equal2;
+   wire branch_taken_EX1;
+   reg  branch_taken_MEM;
+   wire branch_taken_MEM1;
+   wire branch_taken_EX2, branch_taken_MEM2;
    wire branch_taken;
-    
-   reg [1:0] four_count;
+   
+   always @(*) begin				 
+        case(thread_IF)
+         4'b0001: pc = pc0;
+         4'b0010: pc = pc1;
+         4'b0100: pc = pc2;
+         4'b1000: pc = pc3;
+         default: pc = 32'hFFFFFFFF;
+        endcase
+	end
    // -----------------------------------------
    always @(posedge clk) begin
        if(!reset_n) begin
-	       pc         <= 'h0;
-		   four_count <= 'h0;
+	       pc0        <= 'h0;
+	       pc1        <= 4'h4;
+	       pc2        <= 4'h8;
+	       pc3        <= 4'hc;
+           thread_IF  <= 4'b0001;
 	   end
 	   else begin
 		   if(pc_en) begin
-		       pc <= pc + 1'b1;
-			   four_count <= four_count + 1'b1;
-	           if(branch_taken)
-		           pc <= jump_pc;
+                thread_IF <= thread_IF << 1;
+                if(thread_IF == 4'b1000)
+                    thread_IF <= 4'b0001;				
+                case(thread_IF)
+                    4'b0001: begin
+                        pc0 <= pc0 + 4'h4;
+                    end
+                    4'b0010: begin
+                        pc1 <= pc1 + 4'h4;
+                    end
+                    4'b0100: begin
+                        pc2 <= pc2 + 4'h4;
+                    end
+                    4'b1000: begin
+                        pc3 <= pc3 + 4'h4;
+                    end
+					default: begin
+					    pc0 <= pc0;
+						pc1 <= pc1;
+						pc2 <= pc2;
+						pc3 <= pc3;
+					end
+                endcase
+	           if(branch_taken) begin
+		           case(thread_MEM)
+                    4'b0001: begin
+                        pc0 <= jump_pc;
+                    end
+                    4'b0010: begin
+                        pc1 <= jump_pc;
+                    end
+                    4'b0100: begin
+                        pc2 <= jump_pc;
+                    end
+                    4'b1000: begin
+                        pc3 <= jump_pc;
+                    end
+                    endcase
+				end
 		   end
 	   end
    end
@@ -91,17 +146,18 @@ module datapath #(
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (PC_WIDTH)
+       .DWIDTH (PC_WIDTH+4)
 	) inst_IF_ID (
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (pc_en),
-	    .i_data ({pc}),
-	    .o_data ({pc_ID})
+	    .i_data ({pc, thread_IF}),
+	    .o_data ({pc_ID, thread_ID})
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
-    assign instr_ID = (four_count == 2'b01) ? instr : 'h0;
+    //assign instr_ID = (four_count == 2'b01) ? instr : 'h0;
+    assign instr_ID = instr;
     decoder inst_decoder(
      .clk     (clk),
      .reset_n (reset_n),
@@ -119,74 +175,129 @@ module datapath #(
    
    assign sign_immed_ID = (ctrl_ID[6])? ({{32{joffset_ID[19]}},joffset_ID,{12{1'b0}}}) : {{52{immed_ID[11]}}, immed_ID};
 
-   assign reg_wraddr = ctrl_WB[0] ? raddr_WB : rs1_ID;
+   //assign reg_wraddr = ctrl_WB[0] ? raddr_WB : rs1_ID;
    
-   reg_file inst_reg_file (
-        .addra(reg_wraddr), 
-        .addrb(rs2_ID), 
-        .clka(clk), 
-        .clkb(clk), 
-        .dina(data_WB), 
-        .dinb(), 
-        .wea(ctrl_WB[0]), 
-        .web(1'b0), 
-        .douta(reg1data), 
-        .doutb(reg2data)
-	);
+   regx4 #(
+	.D_WIDTH (64)
+   )
+   inst_regfilex4(
+     .clk    (clk),
+	 .reset_n(reset_n),
 	
+     .data_WB (data_WB),
+	 .ctrl_WB (ctrl_WB[0]),
+	
+	 .reg_wraddr(raddr_WB),
+	 .rs1_ID    (rs1_ID),
+	 .rs2_ID    (rs2_ID),
+	
+	 .thread_sel_ID (thread_ID),
+	 .thread_sel_WB (thread_WB),
+	 
+	 .reg1data1 (reg1data1),
+	 .reg2data1 (reg2data1),
+	 
+	 .reg1data2 (reg1data2),
+	 .reg2data2 (reg2data2)
+
+    );
+   
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (10+7+D_WIDTH+PC_WIDTH+5+20)
+       .DWIDTH (10+7+D_WIDTH+PC_WIDTH+5+20+4)
 	) inst_ID_EXE (
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (pc_en),
-	    .i_data ({joffset_ID, rd_ID, pc_ID, func_ID, sign_immed_ID, ctrl_ID}),
-	    .o_data ({joffset_EX, rd_EX, pc_EX, func_EX, sign_immed_EX, ctrl_EX})
+	    .i_data ({joffset_ID, rd_ID, pc_ID, thread_ID, func_ID, sign_immed_ID, ctrl_ID}),
+	    .o_data ({joffset_EX, rd_EX, pc_EX, thread_EX, func_EX, sign_immed_EX, ctrl_EX})
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
-	assign alu_op1 = (ctrl_EX[3] & !ctrl_EX[5]) ? sign_immed_EX : reg2data;
-	assign alu_op0 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data;
-	assign branch_taken_EX = ctrl_EX[5] & (((func_EX[2:0] == 3'b000) & equal) |
-                                           ((func_EX[2:0] == 3'b001) & !equal) |	
-	                                ((func_EX[2:0] == 3'b100) & lessthan) |
-									((func_EX[2:0] == 3'b101) & (greaterthan | equal)));
-    
+	
+	assign alu_op11 = (ctrl_EX[3] & !ctrl_EX[5]) ? sign_immed_EX : reg2data1;
+	assign alu_op01 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data1;
+	
+	assign alu_op12 = (ctrl_EX[3] & !ctrl_EX[5]) ? sign_immed_EX : reg2data2;
+	assign alu_op02 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data2;
+	
+	assign branch_taken_EX1 = ctrl_EX[5] & (((func_EX[2:0] == 3'b000) & equal1) |
+                                           ((func_EX[2:0] == 3'b001) & !equal1) |	
+	                                ((func_EX[2:0] == 3'b100) & lessthan1) |
+									((func_EX[2:0] == 3'b101) & (greaterthan1 | equal1)));
+									
+	assign branch_taken_EX2 = ctrl_EX[5] & (((func_EX[2:0] == 3'b000) & equal2) |
+                                           ((func_EX[2:0] == 3'b001) & !equal2) |	
+	                                ((func_EX[2:0] == 3'b100) & lessthan2) |
+									((func_EX[2:0] == 3'b101) & (greaterthan2 | equal2)));
+									
     assign branch_addr = (pc_EX) + {sign_immed_EX[30:0], 1'b0};
 	// --- ALU ---
-	ALU inst_ALU (
-      .op0   (alu_op0),
-      .op1   (alu_op1),
+	ALU inst_ALU1 (
+      .op0   (alu_op01),
+      .op1   (alu_op11),
       .func3 (func_EX[2:0]),
       .func7 (func_EX[9:3]),
 	  .ctrl  (ctrl_EX),
   
-      .ALU_result(ALU_out),
+      .ALU_result(ALU_out1),
 	  .overflow  ( ),
-      .eq        (equal),
-      .lt        (lessthan),
-      .gt        (greaterthan),
-      .byte_op   (byte_op)
+      .eq        (equal1),
+      .lt        (lessthan1),
+      .gt        (greaterthan1)
 	);
-
+	// --- ALU ---
+	ALU inst_ALU2 (
+      .op0   (alu_op02),
+      .op1   (alu_op12),
+      .func3 (func_EX[2:0]),
+      .func7 (func_EX[9:3]),
+	  .ctrl  (ctrl_EX),
+  
+      .ALU_result(ALU_out2),
+	  .overflow  ( ),
+      .eq        (equal2),
+      .lt        (lessthan2),
+      .gt        (greaterthan2)
+	);
 	assign jump_addr = {{12{joffset_EX[19]}}, joffset_EX[18:0], 1'b0} + (pc_EX);
 	
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (7+D_WIDTH*2+1+5+PC_WIDTH*2+1)
-	)  inst_EXE_MEM(
+       .DWIDTH (7+D_WIDTH*2+1+5+PC_WIDTH*2+4)
+	)  inst_EXE_MEM1(
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (1'b1),
-	    .i_data ({jump_addr, rd_EX, branch_taken_EX, branch_addr, ctrl_EX, reg2data, ALU_out,byte_op}),
-	    .o_data ({jump_addr_MEM, rd_MEM, branch_taken_MEM, branch_addr_MEM, ctrl_MEM, reg2data_MEM, ALU_out_MEM,byte_op_MEM})
+	    .i_data ({thread_EX, jump_addr, rd_EX, branch_taken_EX1, branch_addr, ctrl_EX, reg2data1, ALU_out1}),
+	    .o_data ({thread_MEM, jump_addr_MEM, rd_MEM, branch_taken_MEM1, branch_addr_MEM, ctrl_MEM, reg2data_MEM1, ALU_out_MEM1})
+	);
+    pipelinereg # (
+       .DWIDTH (D_WIDTH*2+1)
+	)  inst_EXE_MEM2(
+	    .clk    (clk),
+	    .reset_n(reset_n),
+	    .en     (1'b1),
+	    .i_data ({branch_taken_EX2, reg2data2, ALU_out2}),
+	    .o_data ({branch_taken_MEM2, reg2data_MEM2, ALU_out_MEM2})
 	);
 	// ---- PIPE LINE Register ----
     // ----------------------------------------
-   
+	always @(*) begin
+	    if(thread_MEM[0] | thread_MEM[2]) begin
+            reg2data_MEM     = reg2data_MEM1;
+            ALU_out_MEM      = ALU_out_MEM1;
+			branch_taken_MEM = branch_taken_MEM1;
+		end
+	    else begin // if(thread_MEM[1] | thread_MEM[3]) begin
+            reg2data_MEM     = reg2data_MEM2;
+            ALU_out_MEM      = ALU_out_MEM2;
+			branch_taken_MEM = branch_taken_MEM2;
+		end
+	end
+	
    assign jump_pc = ctrl_MEM[4] ? jump_addr_MEM : branch_addr_MEM;
    assign branch_taken = (ctrl_MEM[5] & branch_taken_MEM) | ctrl_MEM[4];
    
@@ -194,7 +305,7 @@ module datapath #(
    assign mem_we = ctrl_MEM[1];
    assign mem_addr_out = ALU_out_MEM;
    assign mem_data_out = reg2data_MEM;
-   assign mem_write_data = byte_op_MEM ? {{56{reg2data_MEM[7]}},reg2data_MEM[7:0]} : reg2data_MEM;
+   
    reg [PC_WIDTH-1:0] addr_r;
    always @(posedge clk) 
        addr_r <= ALU_out_MEM;
@@ -205,7 +316,7 @@ module datapath #(
                   .addrb(d_mem_addra[7:0]), 
                   .clka(clk), 
                   .clkb(clk), 
-                  .dina(mem_write_data), 
+                  .dina(reg2data_MEM), 
                   .dinb(d_mem_din[63:0]), 
                   .wea(ctrl_MEM[1]& !ALU_out_MEM[9:8]), 
                   .web(d_mem_we),     // user interface with port B of memory.
@@ -215,18 +326,16 @@ module datapath #(
 	// ---- PIPE LINE Register ----
 		
     pipelinereg # (
-       .DWIDTH (5+7+D_WIDTH+1)
+       .DWIDTH (5+7+D_WIDTH+4)
 	)inst_MEM_WB (
 	    .clk    (clk),
 	    .reset_n(reset_n),
 	    .en     (1'b1),
-	    .i_data ({rd_MEM, ctrl_MEM, ALU_out_MEM, byte_op_MEM}),
-	    .o_data ({raddr_WB, ctrl_WB, ALU_out_WB, byte_op_WB})
+	    .i_data ({thread_MEM, rd_MEM, ctrl_MEM, ALU_out_MEM}),
+	    .o_data ({thread_WB, raddr_WB, ctrl_WB, ALU_out_WB})
 	);
 	wire [D_WIDTH-1:0] data_MEM_MUX;
-    wire [D_WIDTH-1:0] data_MEM_final;
-    assign data_MEM_final      = (byte_op_WB) ? {{56{data_MEM[7]}},data_MEM[7:0]} : data_MEM;
-	assign data_MEM_MUX  = |addr_r[9:8] ? mem_datat_in : data_MEM_final;
+	assign data_MEM_MUX  = |addr_r[9:8] ? mem_datat_in : data_MEM;
 	assign data_WB       = ctrl_WB[2] ? data_MEM_MUX : ALU_out_WB;
 	// ---- PIPE LINE Register ----
     // ----------------------------------------

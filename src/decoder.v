@@ -35,8 +35,7 @@ begin
     rs2     = instr[24:20];
     func    = {instr[31:25], instr[14:12]};
     joffset = {instr[31], instr[19:12], instr[20], instr[30:21]};
-    ctrl    = 'h0;
-    immed   = 'h0;
+	immed   = 'h0;
     case(instr[6:0])
         OP_R: begin
             ctrl = 7'b0000001; //regWrite
@@ -63,6 +62,9 @@ begin
 		OP_L: begin
 		    immed = instr[31:20];
 		    ctrl = 7'b0001101; //immediate, memRead, regWrite
+		end
+		default: begin
+            ctrl  = 'h0;
 		end
     endcase
 end

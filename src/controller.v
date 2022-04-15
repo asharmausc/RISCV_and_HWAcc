@@ -170,7 +170,7 @@ module controller #(
 				register_1    <= tail_addr;
 			end
 			if(we_reg0) begin // End of packet.
-				register_0    <= register_0 | 1'b1; // Indicate start of process
+				register_0    <= register_0 | 4'hf; // Indicate start of process
 			end
 			if(clr_reg3) begin
 				register_3    <= 'h0;    // Reset the drop packet register
@@ -179,7 +179,7 @@ module controller #(
 			// Processor writing to register
 		    if(wea && addra[9]) begin
 			    case(addra[7:0])
-				8'h00: begin register_0 <= dina; end
+				8'h00: begin register_0 <= register_0 & dina; end
 				8'h01: begin register_1 <= dina; end
 				8'h03: begin register_3 <= dina; end
 				endcase

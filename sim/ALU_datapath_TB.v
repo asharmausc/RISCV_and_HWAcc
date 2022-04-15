@@ -5,7 +5,7 @@ module ALU_datapath_TB  ();
 parameter DATA_WIDTH = 64;
 parameter CTRL_WIDTH = DATA_WIDTH/8;
 parameter UDP_REG_SRC_WIDTH = 2;
-localparam NUM_INSTR = 32;
+localparam NUM_INSTR = 200;
 
 localparam DROP = 0;
 
@@ -103,9 +103,9 @@ always #5 clk = ~clk;
    
 
 // memory
-reg [31:0] istr_mem [50:0];
-reg [71:0] data_mem [70:0];
-reg [71:0] mem_ALU [50:0];
+reg [31:0] istr_mem [NUM_INSTR-1:0];
+reg [71:0] data_mem [100:0];
+reg [71:0] mem_ALU [100:0];
 initial begin
     $readmemh("dump.txt",istr_mem);
 	#100
@@ -123,7 +123,7 @@ integer num_data_vals;
 // SEND DATA
 task send_data; begin
 	count = 0;
-	while(count != 2) begin
+	while(count != 39) begin
 	    d_mem_addra <= count;
 		d_mem_din   <= mem_ALU[count];
 		d_mem_we    <= 1'b1;
@@ -203,19 +203,20 @@ pc_en = 'h0;
 #100
 reset = 1'b0;
 #100
-pc_en = 1'b1;
+//pc_en = 1'b1;
 send_instr();
 send_data();
-out_rdy = 1'b1;
-fork
-  send_packets();
-  pc_en = 32'h1;
-join
-#200
-pc_en = 32'h0;
+pc_en <= 1'b1;
+out_rdy <= 1'b1;
+//fork
+  //send_packets();
+  //pc_en = 32'h1;
+//join
+//#200
+//pc_en = 32'h0;
 #20
 send_packets();
-#10000;
+//#10000;
 //read_data();
 $stop;
 end
