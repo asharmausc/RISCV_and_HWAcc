@@ -83,6 +83,7 @@
 	   .clk         (clk),
 	   .pc_en       (pc_en),
 	   .reset_n     (reset_n),
+	   .i_we        (wea),
        .i_ctrl      (fifo_input[71:64]),
        .tail_addr   (tail_address),
        .head_addr   (head_address),

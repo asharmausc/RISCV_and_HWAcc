@@ -10,6 +10,7 @@ module controller #(
 	   input clk,
 	   input reset_n,
 	   input pc_en,
+	   input i_we,
        input [7:0]         i_ctrl,
        input [AWIDTH-3:0]  tail_addr,
        input [AWIDTH-3:0]  head_addr,
@@ -74,7 +75,7 @@ module controller #(
 		    SEARCH_SOP: begin 
 		        stall_C    = 1'b0;
 		    	stop_tx    = (head_addr == register_1);
-		        if(i_ctrl == 8'hff && prev_control != 8'hff) begin
+		        if(i_ctrl == 8'hff && prev_control != 8'hff & i_we) begin
 		    	    we_reg1    = 1'b1;
 		    		next_state = SEARCH_EOP;
 		    	end
@@ -82,7 +83,7 @@ module controller #(
 		    SEARCH_EOP: begin
 		    	stop_tx    = (head_addr == register_1);
 		    	stall_C       = 1'b0;
-		        if(i_ctrl != 0 && prev_control == 0) begin // End of packet.
+		        if(i_ctrl != 0 && prev_control == 0 & i_we) begin // End of packet.
 		    	    stall_C       = 1'b1;
 		    		we_reg0       = 1'b1; // Indicate start of process.
 		    		we_reg2       = 1'b1; // Store end of packet
@@ -159,9 +160,10 @@ module controller #(
 		    state        <= next_state;
 		    fifo_sel_r   <= fifo_sel_C;
 		    fifo_sel     <= fifo_sel_C;
-		    prev_control <= i_ctrl;
 			stall_r      <= stall_C;
 		    drop_packet  <= drop_packet_C;
+			if(i_we)
+		        prev_control <= i_ctrl;
 
 			if(we_reg2) begin // store end of packet.
 			    register_2   <= tail_addr;
