@@ -39,7 +39,7 @@
 
 module i_mem #(
      parameter integer DWIDTH = 32,
-	  parameter integer AWIDTH = 9,
+	  parameter integer AWIDTH = 10,
 	  parameter integer DEPTH  = 2**AWIDTH
 	 )
    (

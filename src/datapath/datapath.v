@@ -134,8 +134,8 @@ module datapath #(
    end
    
    i_mem inst_imem(
-        .addra(i_mem_addra[8:0]), 
-        .addrb(pc[10:2]), 
+        .addra(i_mem_addra[9:0]), 
+        .addrb(pc[11:2]), 
         .clka(clk), 
         .clkb(clk), 
         .dina(i_mem_din), 
@@ -245,7 +245,8 @@ module datapath #(
 	  .overflow  ( ),
       .eq        (equal1),
       .lt        (lessthan1),
-      .gt        (greaterthan1)
+      .gt        (greaterthan1),
+	  .byte_op   ()
 	);
 	// --- ALU ---
 	ALU inst_ALU2 (
@@ -259,7 +260,8 @@ module datapath #(
 	  .overflow  ( ),
       .eq        (equal2),
       .lt        (lessthan2),
-      .gt        (greaterthan2)
+      .gt        (greaterthan2),
+	  .byte_op   ()
 	);
 	assign jump_addr = {{12{joffset_EX[19]}}, joffset_EX[18:0], 1'b0} + (pc_EX);
 	
