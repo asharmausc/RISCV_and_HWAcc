@@ -1,5 +1,6 @@
 *.bak
 *.wlf
 *.mpf
-sim/work/
+*work/
 *mti
+*.bak
