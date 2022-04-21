@@ -1,19 +1,17 @@
-// Code your design here
+// Code here
 module single_stage_encryption(
 /* input, output ports*/
-input [15:0] i_d0,
-input [15:0] i_d1,
-input [15:0] i_d2,
-input [15:0] i_d3,
-input in_wr,
-input clk,
-input [15:0] key,
-
-output reg[15:0] o_d0,
-output reg[15:0] o_d1,
-output reg[15:0] o_d2,
-output reg[15:0] o_d3,
-output o_wr
+  input clk,
+  input [15:0] i_d0,
+  input [15:0] i_d1,
+  input [15:0] i_d2,
+  input [15:0] i_d3,
+  input [15:0] key,
+  
+  output reg[15:0] o_d0,
+  output reg[15:0] o_d1,
+  output reg[15:0] o_d2,
+  output reg[15:0] o_d3
 );
 
   parameter [15:0]cons1 = 16'hffff;
@@ -68,12 +66,12 @@ wire [15:0] P10_1,Q10_1,P20_1,Q20_1,Q11_1,P11_1,Q21_1,P21_1,P12_1,Q12_1,P22_1,Q2
 wire [15:0] d1_1,d2_1,d3_1,d4_1, d1_1_f, d4_1_f;
 
 
-assign d1_1 = ((~(i_d0 ^ key)) & (cons1));
+  assign d1_1 = ((~(i_d0 ^ key)) & (cons1));
 
-assign P10 = P[d1_1>>12];
-    assign Q10= Q[(d1_1>>8) & cons2];
-    assign P20= P[(d1_1>>4)  & cons2];
-    assign Q20= Q[d1_1  &  cons2];
+  assign P10 = P[d1_1>>12];
+  assign Q10= Q[(d1_1>>8) & cons2];
+  assign P20= P[(d1_1>>4)  & cons2];
+  assign Q20= Q[d1_1  &  cons2];
   assign Q11= Q[(P10 & Q11_cons) | (Q10 >> 2)];
   assign P11= P[((P10 << 2) | (P20 >> 2)) & 8'h0f];
   assign Q21= Q[((Q10 << 2) | (Q20 >> 2)) & 8'h0f];
@@ -83,14 +81,13 @@ assign P10 = P[d1_1>>12];
   assign P22= P[((P11 << 2) | (P21 >> 2)) & 8'h0f];
   assign Q22= Q[(P21 & 4'b0011) | ((Q21 << 2) & 4'b1100)];
  
-assign d1_1_f = (P12<<12) | (Q12 << 8) | (P22 <<4) | Q22;
+  assign d1_1_f = (P12<<12) | (Q12 << 8) | (P22 <<4) | Q22;
 
   assign d2_1 =  (d1_1_f ^ i_d2) & 20'h0ffff;
   assign d4_1 = ~(i_d3 ^ key) & 20'h0ffff;
 
 
 //Second batch:
-
   assign P10_1 =   P[d4_1>>12];
   assign Q10_1 = Q[d4_1>>8  & 16'h000f];
   assign P20_1 = P[d4_1>>4  & 16'h000f];

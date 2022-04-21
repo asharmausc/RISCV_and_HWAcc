@@ -74,6 +74,65 @@ module ALU_datapath
    reg reb_r;
    wire full;
    
+   // Header parser signals
+   wire [DATA_WIDTH-1:0] out_dataH, out_dataHWacc;
+   wire [CTRL_WIDTH-1:0] out_ctrlH, out_ctrlHWacc;
+   wire out_wrH, out_wrHWacc;
+   wire out_rdyHWacc, out_rdyF;
+   wire [15:0] data_count;
+   wire payload;
+   wire [79:0] key;
+   
+   // Instanse for Header parser.
+   headerparser #(
+    .DWIDTH (64),
+    .CTRL_WIDTH (8)
+   )
+   inst_headerparser (
+    .i_clock  (clk),
+	.i_reset_n(~reset),
+	
+	.in_data  (in_data),
+	.in_ctrl  (in_ctrl),
+	.in_wr    (in_wr),
+	.in_rdy   (in_rdy),
+	
+	.out_data (out_dataH),
+	.out_ctrl (out_ctrlH),
+	.out_wr   (out_wrH),
+	.out_rdy  (out_rdyHWacc),
+    
+	// output data 
+	.data_count       (data_count),
+	.o_inside_payload (payload)
+   );
+
+   // Instanse for HW Accelerator.
+   hwaccelerator #(
+     .DWIDTH (64)
+  )
+   inst_HWACC  
+  (
+    .i_clock   (clk),
+	.i_reset_n (~reset),
+	
+	.in_data   (out_dataH),
+	.in_ctrl   (out_ctrlH),
+	.in_wr     (out_wrH),
+	.in_rdy    (out_rdyHWacc),
+	
+	.out_data  (out_dataHWacc),
+	.out_ctrl  (out_ctrlHWacc),
+	.out_wr    (out_wrHWacc),
+	.out_rdy   (out_rdyF),
+    
+    .key       (key),
+	.data_count(data_count),
+	.inside_payload (payload),
+	.path_sel  (pc_en[17:16])
+ );
+   
+   
     fifo_sram #(
       .DWIDTH  (72),
 	  .IAWIDTH (10) // Address range is [0 to 1023]
@@ -81,13 +140,13 @@ module ALU_datapath
       .reset_n      (~reset & ~pc_en[4]),
       .clk          (clk),
 	  .pc_en        (pc_en[0]), 
-      .wea          (in_wr),
+      .wea          (out_wrHWacc),
       .addra        ('h0),
       .dina         ('h0),
       .web          (mem_we),
       .addrb        (mem_addr_out),
       .dinb         ({8'h00, mem_data_out}),
-      .fifo_input   ({in_ctrl,in_data}),
+      .fifo_input   ({out_ctrlHWacc,out_dataHWacc}),
 	  .reb          (reb),
       .sram_data_out(sram_data_out), 
       .fifo_output  ({out_ctrl,out_data}),
@@ -98,7 +157,7 @@ module ALU_datapath
     );
 	
    assign reb = out_rdy & !empty;
-   assign in_rdy = ~almfull & ~stall;
+   assign out_rdyF = ~almfull & ~stall;
    assign out_wr = reb_r;
    
    always @(posedge clk)
@@ -145,7 +204,7 @@ module ALU_datapath
       .TAG                 (`ALU_DATAPATH_BLOCK_ADDR),          // Tag -- eg. MODULE_TAG
       .REG_ADDR_WIDTH      (`ALU_DATAPATH_REG_ADDR_WIDTH),     // Width of block addresses -- eg. MODULE_REG_ADDR_WIDTH
       .NUM_COUNTERS        (0),                 // Number of counters
-      .NUM_SOFTWARE_REGS   (6),                 // Number of sw regs
+      .NUM_SOFTWARE_REGS   (7),                 // Number of sw regs
       .NUM_HARDWARE_REGS   (4)                  // Number of hw regs
    ) module_regs (
       .reg_req_in       (reg_req_in),
@@ -167,7 +226,7 @@ module ALU_datapath
       .counter_decrement(),
 
       // --- SW regs interface
-      .software_regs    ({pc_en, istr_addr_and_en, istr_data, mem_addr_and_en, mem_data_high, mem_data_low}),
+      .software_regs    ({key, pc_en, istr_addr_and_en, istr_data, mem_addr_and_en, mem_data_high, mem_data_low}),
 
       // --- HW regs interface
       //.hardware_regs    ({{out_count, empty, full, almfull, stall, in_count[11:0]}, istr_rd_data, mem_rd_data_high, mem_rd_data_low}),

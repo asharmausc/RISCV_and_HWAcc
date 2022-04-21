@@ -1,0 +1,46 @@
+onerror {resume}
+quietly WaveActivateNextPane {} 0
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/i_clock
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/i_reset_n
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/in_data
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/in_ctrl
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/in_wr
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/in_rdy
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/out_rdy
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/data_count
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/out_data
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/out_ctrl
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/out_wr
+add wave -noupdate -expand -group H_Parser /HWAcc_n_header_parser_TB/inst_headerparser/o_inside_payload
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/i_clock
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/i_reset_n
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/in_data
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/in_ctrl
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/in_wr
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/in_rdy
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/out_data
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/out_ctrl
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/out_wr
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/out_rdy
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/key
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/data_count
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/inside_payload
+add wave -noupdate -expand -group HW_ACC /HWAcc_n_header_parser_TB/inst_HWACC/path_sel
+TreeUpdate [SetDefaultTree]
+WaveRestoreCursors {{Cursor 1} {3345600 ps} 0}
+quietly wave cursor active 1
+configure wave -namecolwidth 150
+configure wave -valuecolwidth 100
+configure wave -justifyvalue left
+configure wave -signalnamewidth 1
+configure wave -snapdistance 10
+configure wave -datasetprefix 0
+configure wave -rowmargin 4
+configure wave -childrowmargin 2
+configure wave -gridoffset 0
+configure wave -gridperiod 1
+configure wave -griddelta 40
+configure wave -timeline 0
+configure wave -timelineunits ps
+update
+WaveRestoreZoom {0 ps} {3969 ns}
