@@ -14,12 +14,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 `timescale 1ns/1ps
 
-module HWAcc_n_header_parser_TB ();
+module HWAcc_two_core_TB ();
 parameter DATA_WIDTH = 64;
 parameter CTRL_WIDTH = DATA_WIDTH/8;
 parameter UDP_REG_SRC_WIDTH = 2;
 localparam NUM_INSTR = 250;
 localparam PKT_SIZE = 20;
+
 localparam DROP = 0;
 
 reg [DATA_WIDTH-1:0]             in_data = 'h0;
@@ -32,14 +33,15 @@ wire[CTRL_WIDTH-1:0]             out_ctrl, out_ctrl1;
 wire                             out_wr;
 reg                             out_rdy;
     
-reg [31:0] i_mem_addra, i_mem_addra1;
-reg [31:0] i_mem_din, i_mem_din1;
-reg i_mem_we, i_mem_we1;
+reg [31:0] i_mem_addra[1:0];
+reg [31:0] i_mem_din[1:0];
+reg i_mem_we[1:0];
+reg i_mem_w[1:0];
 
-reg [7:0] d_mem_addra, d_mem_addra1;
-reg [63:0] d_mem_din, d_mem_din1;
-wire [63:0] d_mem_out, d_mem_out1;
-reg d_mem_we, d_mem_we1;
+reg [7:0] d_mem_addra[1:0];
+reg [63:0] d_mem_din [1:0];
+wire [63:0] d_mem_out[1:0];
+reg d_mem_we[1:0];
 
 // software registers 
 wire [31:0]                   mem_data_high;
@@ -52,16 +54,18 @@ wire [31:0]                   i_mem_dout, i_mem_dout1;
 reg [31:0]                    pc_en;
 
 
-wire [63:0] sram_data_out, sram_data_out1;
-wire [9:0]  mem_addr_out, mem_addr_out1;
-wire [63:0] mem_data_out, mem_data_out1;
-wire  mem_we, mem_we1, stall, stall1, almfull, almfull1, empty, empty1;
-wire reb;
-
+wire [63:0] sram_data_out[1:0];//, sram_data_out1;
+wire [9:0]  mem_addr_out[1:0];//, mem_addr_out1;
+wire [63:0] mem_data_out[1:0];//, mem_data_out1;
+wire mem_we[1:0];
+wire stall[1:0];
+wire almfull[1:0];
+wire empty[1:0];
+wire reb[1:0];	
 reg clk = 1;
 reg reset = 0;
-reg reb_r;
-
+reg reb_r[1:0];
+wire full[1:0];
 
 // clock
 always #5 clk = ~clk;
@@ -122,107 +126,71 @@ always #5 clk = ~clk;
 	.data_count(data_count),
 	.inside_payload (payload),
 	.path_sel  (pc_en[17:16])
- );
-   
-    fifo_sram #(
-      .DWIDTH  (72),
-	  .IAWIDTH (10) // Address range is [0 to 1023]
-	) inst_fifo_sram (
-      .reset_n      (~reset),
-      .clk          (clk),
-	  .pc_en        (pc_en[0]), 
-      .wea          (out_wrHWacc),
-      .addra        ('h0),
-      .dina         ('h0),
-      .web          (mem_we),
-      .addrb        (mem_addr_out),
-      .dinb         ({8'h00, mem_data_out}),
-      .fifo_input   ({out_ctrlHWacc,out_dataHWacc}),
-	  .reb          (reb),
-      .sram_data_out(sram_data_out), 
-      .fifo_output  ({out_ctrl,out_data}),
-	  .almfull      (almfull),
-	  .fifo_empty   (empty),
-	  .stall        (stall)
-    );
-	
-	
-	
-   assign reb = !almfull & !empty;
-   assign out_rdyF = ~almfull & ~stall;
-   assign out_wr = reb_r;
-   always @(posedge clk)
-       reb_r <= reb;
-	   
-   // 2nd Instanse for Header parser.
-   headerparser #(
-    .DWIDTH (64),
-    .CTRL_WIDTH (8)
-   )
-   inst_headerparser_2 (
-    .i_clock  (clk),
-	.i_reset_n(~reset),
-	
-	.in_data  (out_data),
-	.in_ctrl  (out_ctrl),
-	.in_wr    (out_wr),
-	.in_rdy   (),
-	
-	.out_data (out_dataH2),
-	.out_ctrl (out_ctrlH2),
-	.out_wr   (out_wrH2),
-	.out_rdy  (out_rdyHWacc_d),
-    
-	// output data 
-	.data_count       (data_countd),
-	.o_inside_payload (payloadd)
-   );
+ );	   
 
-   // Instanse for HW Accelerator.
-   hwaccelerator #(
-     .DWIDTH (64)
-  )
-   inst_HWACC_decrypt  
-  (
-    .i_clock   (clk),
-	.i_reset_n (~reset),
-	
-	.in_data   (out_dataH2),
-	.in_ctrl   (out_ctrlH2),
-	.in_wr     (out_wrH2),
-	.in_rdy    (out_rdyHWacc_d),
-	
-	.out_data  (out_dataHWaccd),
-	.out_ctrl  (out_ctrlHWaccd),
-	.out_wr    (out_wrHWaccd),
-	.out_rdy   (1'b1),
-    
-    .key       (key),
-	.data_count(data_countd),
-	.inside_payload (payloadd),
-	.path_sel  (2'b10)
- );
- 
-   datapath inst_datapath (
-		.i_mem_addra  (i_mem_addra), 
-		.i_mem_din    (i_mem_din), 
-		.i_mem_dout   (i_mem_dout), 
-		.i_mem_we     (i_mem_we), 
-		.d_mem_addra  (d_mem_addra[7:0]), 
-		.d_mem_din    (d_mem_din), 
-		.d_mem_we     (d_mem_we), 
-		.d_mem_out    (d_mem_out),
-		// Memory access for FIFO and controller
-	    .mem_datat_in (sram_data_out[63:0]),
-	    .mem_addr_out (mem_addr_out),
-	    .mem_data_out (mem_data_out),
-	    .mem_we       (mem_we),
+// signal decleration for 2 processor signals.
+    wire [DATA_WIDTH-1:0]    out_data_r[1:0];
+    wire [CTRL_WIDTH-1:0]    out_ctrl_r[1:0];
+    wire                     out_wr_r  [1:0];
 
-		.pc_en        (pc_en[0]), 
-		.reset_n      (~reset), 
-		.clk          (clk)
-   );
-   
+    assign out_rdyF = ~almfull[0] & ~stall[0];
+	assign out_data = out_data_r[0];
+	assign out_ctrl = out_ctrl_r[0];
+	assign out_wr   = out_wr_r  [0];
+	
+  generate 
+    for(genvar i = 0; i< 2; i= i+1) begin
+      fifo_sram #(
+        .DWIDTH  (72),
+	    .IAWIDTH (10) // Address range is [0 to 1023]
+	  ) inst_fifo_sram (
+        .reset_n      (~reset & ~pc_en[4]),
+        .clk          (clk),
+	    .pc_en        (pc_en[0]), 
+        .wea          (out_wrHWacc),
+        .addra        ('h0),
+        .dina         ('h0),
+        .web          (mem_we[i]),
+        .addrb        (mem_addr_out[i]),
+        .dinb         ({8'h00, mem_data_out[i]}),
+        .fifo_input   ({out_ctrlHWacc,out_dataHWacc}),
+	    .reb          (reb[i]),
+        .sram_data_out(sram_data_out[i]), 
+        .fifo_output  ({out_ctrl_r[i],out_data_r[i]}),
+	    .almfull      (almfull[i]),
+	    .fifo_empty   (empty[i]),
+	    .o_full       (full[i]),
+	    .stall        (stall[i])
+      );
+	  
+      assign reb[i] = out_rdy & !empty[i];
+      //assign out_rdyF = ~almfull[i] & ~stall[i];
+      assign out_wr_r[i] = reb_r[i];
+      
+      always @(posedge clk)
+         reb_r[i] <= reb[i];
+	  
+      datapath inst_datapath (
+	  	.i_mem_addra  (i_mem_addra[i]), 
+	  	.i_mem_din    (i_mem_din[i]), 
+	  	.i_mem_dout   (i_mem_dout[i]), 
+	  	.i_mem_we     (i_mem_we[i]), 
+	  	.d_mem_addra  (d_mem_addra[i][7:0]), 
+	  	.d_mem_din    (d_mem_din[i]), 
+	  	.d_mem_we     (d_mem_we[i]), 
+	  	.d_mem_out    (d_mem_out[i]),
+	  	// Memory access for FIFO and controller
+	    .mem_datat_in (sram_data_out[i][63:0]),
+	    .mem_addr_out (mem_addr_out[i]),
+	    .mem_data_out (mem_data_out[i]),
+	    .mem_we       (mem_we[i]),
+	  
+	  	.pc_en        (pc_en[0]), 
+	  	.reset_n      (~reset), 
+	  	.clk          (clk)
+      );
+   end
+   endgenerate   
 
   // memory
   reg [31:0] istr_mem [NUM_INSTR-1:0];
@@ -241,7 +209,7 @@ always #5 clk = ~clk;
   	#100
   	$display("Wrote data to memory");
   end
-
+  
   // Always block checking for data.
   reg [15:0] indx = 'h0;
   reg diff = 1'b0;
@@ -254,22 +222,28 @@ always #5 clk = ~clk;
 	    diff <= 1'b1;
 	end
   end  
- 	  
+  
   integer count;
   integer num_data_vals;
   // SEND DATA
   task send_data; begin
   	count = 0;
   	while(count != 39) begin
-  	    d_mem_addra <= count;
-  		d_mem_din   <= mem_ALU[count];
-  		d_mem_we    <= 1'b1;
+  	    d_mem_addra[0] <= count;
+  	    d_mem_addra[1] <= count;
+  		d_mem_din  [0] <= mem_ALU[count];
+  		d_mem_din  [1] <= mem_ALU[count];
+  		d_mem_we   [0] <= 1'b1;
+  		d_mem_we   [1] <= 1'b1;
   		#10;
   		count = count + 1'b1;
   	end
-  	    d_mem_addra <= 'h0;
-  		d_mem_din   <= 'h0;
-  		d_mem_we    <= 1'b0;
+  	    d_mem_addra[0] <= 'h0;
+  	    d_mem_addra[1] <= 'h0;
+  		d_mem_din  [0] <= 'h0;
+  		d_mem_din  [1] <= 'h0;
+  		d_mem_we   [0] <= 1'b0;
+  		d_mem_we   [1] <= 1'b0;
   		#10;
   end
   endtask
@@ -302,36 +276,30 @@ always #5 clk = ~clk;
   		#10;
   end
   endtask
+  
   // SEND INSTR
   task send_instr; begin
   	count = 0;
   	while(count != NUM_INSTR) begin
-  	    i_mem_addra <= count;
-  		i_mem_din   <= istr_mem[count];
-  		i_mem_we    <= 1'b1;
+  	    i_mem_addra[0] <= count;
+  	    i_mem_addra[1] <= count;
+  		i_mem_din[0]   <= istr_mem[count];
+  		i_mem_din[1]   <= istr_mem[count];
+  		i_mem_we[0]    <= 1'b1;
+  		i_mem_we[1]    <= 1'b1;
   		#10;
   		count = count + 1'b1;
   	end
-  	    i_mem_addra <= 'h0;
-  		i_mem_din   <= 'h0;
-  		i_mem_we    <= 1'b0;
+  	    i_mem_addra[0] <= 'h0;
+  	    i_mem_addra[1] <= 'h0;
+  		i_mem_din  [0] <= 'h0;
+  		i_mem_din  [1] <= 'h0;
+  		i_mem_we   [0] <= 1'b0;
+  		i_mem_we   [1] <= 1'b0;
   		#10;
   end
   endtask
-  // READ DATA
-  task read_data; begin
-    count  = 0;
-    num_data_vals = data_mem[0];
-    while (count != num_data_vals) begin
-        d_mem_addra = count + 1;
-  		#10
-  		$display("%x",d_mem_out);
-  		count = count +1;
-    end
-    d_mem_addra = 'h0;
-  end
-  endtask
-  
+    
   initial begin
     reset = 1'b1;
     out_rdy = 1'b1;
@@ -342,9 +310,9 @@ always #5 clk = ~clk;
     //pc_en = 1'b1;
     send_instr();
     send_data();
-    //pc_en <= 1'b1;
+    pc_en <= 1'b1;
     out_rdy <= 1'b1;
-	pc_en[17:16] <= 2'b01;
+	pc_en[17:16] <= 2'b00;
     //fork
       //send_packets();
       //pc_en = 32'h1;

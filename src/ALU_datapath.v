@@ -52,27 +52,28 @@ module ALU_datapath
    );
    
    // software registers 
-   wire [31:0]                   mem_data_high;
-   wire [31:0]                   mem_data_low;
-   wire [31:0]                   mem_addr_and_en;
-   wire [31:0]                   mem_rd_data_high;
-   wire [31:0]                   mem_rd_data_low;
-   wire [31:0]                   mem_rd_addr;
+   wire [31:0]           mem_data_high[1:0];
+   wire [31:0]           mem_data_low[1:0];
+   wire [31:0]           mem_addr_and_en[1:0];
+   wire [31:0]           mem_rd_data_high[1:0];
+   wire [31:0]           mem_rd_data_low[1:0];
+   wire [31:0]           mem_rd_addr[1:0];
  
-   wire [31:0]                   istr_data;
-   wire [31:0]                   istr_addr_and_en;
-   wire [31:0]                   istr_rd_data;
-   wire [31:0]                   pc_en;
-   // hardware registers
-   reg [31:0]                    matches;
-   
-   
-   wire [71:0] sram_data_out;
-   wire [9:0]  mem_addr_out;
-   wire [63:0] mem_data_out;
-   wire  mem_we, stall, reb, empty, almfull;      
-   reg reb_r;
-   wire full;
+   wire [31:0]           istr_data [1:0];
+   wire [31:0]           istr_addr_and_en[1:0];
+   wire [31:0]           istr_rd_data[1:0];
+   wire [31:0]           pc_en;
+   // hardware registers   
+   wire [71:0] sram_data_out[1:0];
+   wire [9:0]  mem_addr_out [1:0];
+   wire [63:0] mem_data_out [1:0];
+   wire  mem_we [1:0];
+   wire stall [1:0];
+   wire reb[1:0];
+   wire empty[1:0];
+   wire almfull[1:0];      
+   reg  reb_r[1:0];
+   wire full[1:0];
    
    // Header parser signals
    wire [DATA_WIDTH-1:0] out_dataH, out_dataHWacc;
@@ -132,37 +133,6 @@ module ALU_datapath
 	.path_sel  (pc_en[17:16])
  );
    
-   
-    fifo_sram #(
-      .DWIDTH  (72),
-	  .IAWIDTH (10) // Address range is [0 to 1023]
-	) inst_fifo_sram (
-      .reset_n      (~reset & ~pc_en[4]),
-      .clk          (clk),
-	  .pc_en        (pc_en[0]), 
-      .wea          (out_wrHWacc),
-      .addra        ('h0),
-      .dina         ('h0),
-      .web          (mem_we),
-      .addrb        (mem_addr_out),
-      .dinb         ({8'h00, mem_data_out}),
-      .fifo_input   ({out_ctrlHWacc,out_dataHWacc}),
-	  .reb          (reb),
-      .sram_data_out(sram_data_out), 
-      .fifo_output  ({out_ctrl,out_data}),
-	  .almfull      (almfull),
-	  .fifo_empty   (empty),
-	  .o_full       (full),
-	  .stall        (stall)
-    );
-	
-   assign reb = out_rdy & !empty;
-   assign out_rdyF = ~almfull & ~stall;
-   assign out_wr = reb_r;
-   
-   always @(posedge clk)
-       reb_r <= reb;
-   
    reg [15:0] out_count;
    reg [15:0] in_count;
    always @(posedge clk) begin
@@ -177,26 +147,71 @@ module ALU_datapath
 	           out_count <= out_count + 1'b1;
        end
    end
-   datapath inst_datapath (
-		.i_mem_addra  (istr_addr_and_en), 
-		.i_mem_din    (istr_data), 
-		.i_mem_dout   (istr_rd_data), 
-		.i_mem_we     (istr_addr_and_en[9]), 
-		.d_mem_addra  (mem_addr_and_en[7:0]), 
-		.d_mem_din    ({mem_data_high, mem_data_low}), 
-		.d_mem_we     (mem_addr_and_en[8]), 
-		.d_mem_out    ({mem_rd_data_high, mem_rd_data_low}),
-		// Memory access for FIFO and controller
-	    .mem_datat_in (sram_data_out[63:0]),
-	    .mem_addr_out (mem_addr_out),
-	    .mem_data_out (mem_data_out),
-	    .mem_we       (mem_we),
 
-		.pc_en        (pc_en[0]), 
-		.reset_n      (~reset), 
-		.clk          (clk)
-   );
-   
+
+// signal decleration for 2 processor signals.
+    wire [DATA_WIDTH-1:0]    out_data_r[1:0];
+    wire [CTRL_WIDTH-1:0]    out_ctrl_r[1:0];
+    wire                     out_wr_r  [1:0];
+
+    assign out_rdyF = ~almfull[0] & ~stall[0];
+	assign out_data = out_data_r[0];
+	assign out_ctrl = out_ctrl_r[0];
+	assign out_wr   = out_wr_r  [0];
+	
+  generate 
+    for(genvar i = 0; i< 2; i= i+1) begin
+      fifo_sram #(
+        .DWIDTH  (72),
+	    .IAWIDTH (10) // Address range is [0 to 1023]
+	  ) inst_fifo_sram (
+        .reset_n      (~reset & ~pc_en[4]),
+        .clk          (clk),
+	    .pc_en        (pc_en[0]), 
+        .wea          (out_wrHWacc),
+        .addra        ('h0),
+        .dina         ('h0),
+        .web          (mem_we[i]),
+        .addrb        (mem_addr_out[i]),
+        .dinb         ({8'h00, mem_data_out[i]}),
+        .fifo_input   ({out_ctrlHWacc,out_dataHWacc}),
+	    .reb          (reb[i]),
+        .sram_data_out(sram_data_out[i]), 
+        .fifo_output  ({out_ctrl_r[i],out_data_r[i]}),
+	    .almfull      (almfull[i]),
+	    .fifo_empty   (empty[i]),
+	    .o_full       (full[i]),
+	    .stall        (stall[i])
+      );
+	  
+      assign reb[i] = out_rdy & !empty[i];
+      //assign out_rdyF = ~almfull[i] & ~stall[i];
+      assign out_wr_r[i] = reb_r[i];
+      
+      always @(posedge clk)
+         reb_r[i] <= reb[i];
+	  
+      datapath inst_datapath (
+	  	.i_mem_addra  (istr_addr_and_en[i]), 
+	  	.i_mem_din    (istr_data[i]), 
+	  	.i_mem_dout   (istr_rd_data[i]), 
+	  	.i_mem_we     (istr_addr_and_en[i][9]), 
+	  	.d_mem_addra  (mem_addr_and_en[i][7:0]), 
+	  	.d_mem_din    ({mem_data_high[i], mem_data_low[i]}), 
+	  	.d_mem_we     (mem_addr_and_en[i][8]), 
+	  	.d_mem_out    ({mem_rd_data_high[i], mem_rd_data_low[i]}),
+	  	// Memory access for FIFO and controller
+	    .mem_datat_in (sram_data_out[i][63:0]),
+	    .mem_addr_out (mem_addr_out[i]),
+	    .mem_data_out (mem_data_out[i]),
+	    .mem_we       (mem_we[i]),
+	  
+	  	.pc_en        (pc_en[0]), 
+	  	.reset_n      (~reset), 
+	  	.clk          (clk)
+      );
+   end
+   endgenerate   
 
    generic_regs
    #( 
@@ -204,8 +219,8 @@ module ALU_datapath
       .TAG                 (`ALU_DATAPATH_BLOCK_ADDR),          // Tag -- eg. MODULE_TAG
       .REG_ADDR_WIDTH      (`ALU_DATAPATH_REG_ADDR_WIDTH),     // Width of block addresses -- eg. MODULE_REG_ADDR_WIDTH
       .NUM_COUNTERS        (0),                 // Number of counters
-      .NUM_SOFTWARE_REGS   (7),                 // Number of sw regs
-      .NUM_HARDWARE_REGS   (4)                  // Number of hw regs
+      .NUM_SOFTWARE_REGS   (12),                // Number of sw regs
+      .NUM_HARDWARE_REGS   (7)                  // Number of hw regs
    ) module_regs (
       .reg_req_in       (reg_req_in),
       .reg_ack_in       (reg_ack_in),
@@ -226,11 +241,13 @@ module ALU_datapath
       .counter_decrement(),
 
       // --- SW regs interface
-      .software_regs    ({key, pc_en, istr_addr_and_en, istr_data, mem_addr_and_en, mem_data_high, mem_data_low}),
+      .software_regs    ({key, pc_en, istr_addr_and_en[1], istr_data[1], mem_addr_and_en[1], mem_data_high[1], mem_data_low[1],
+                                 	  istr_addr_and_en[0], istr_data[0], mem_addr_and_en[0], mem_data_high[0], mem_data_low[0]}),
 
       // --- HW regs interface
       //.hardware_regs    ({{out_count, empty, full, almfull, stall, in_count[11:0]}, istr_rd_data, mem_rd_data_high, mem_rd_data_low}),
-      .hardware_regs    ({{28'h0000000, empty, full, almfull, stall}, istr_rd_data, mem_rd_data_high, mem_rd_data_low}),
+      .hardware_regs    ({{28'h0000000, empty[0], full[0], almfull[0], stall[0]}, istr_rd_data[1], mem_rd_data_high[1], mem_rd_data_low[1], 
+	                                                                  istr_rd_data[0], mem_rd_data_high[0], mem_rd_data_low[0]}),
 
       .clk              (clk),
       .reset            (reset)

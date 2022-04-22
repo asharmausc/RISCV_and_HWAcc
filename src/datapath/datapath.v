@@ -173,7 +173,8 @@ module datapath #(
      .ctrl    (ctrl_ID)
     );
    
-   assign sign_immed_ID = (ctrl_ID[6])? ({{32{joffset_ID[19]}},joffset_ID,{12{1'b0}}}) : {{52{immed_ID[11]}}, immed_ID};
+   //assign sign_immed_ID = (ctrl_ID[6])? ({{32{joffset_ID[19]}},joffset_ID,{12{1'b0}}}) : {{52{immed_ID[11]}}, immed_ID};
+   assign sign_immed_ID = {{52{immed_ID[11]}}, immed_ID};
 
    //assign reg_wraddr = ctrl_WB[0] ? raddr_WB : rs1_ID;
    
@@ -217,10 +218,12 @@ module datapath #(
     // ----------------------------------------
 	
 	assign alu_op11 = (ctrl_EX[3] & !ctrl_EX[5]) ? sign_immed_EX : reg2data1;
-	assign alu_op01 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data1;
+	// assign alu_op01 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data1;
+	assign alu_op01 = reg1data1;
 	
 	assign alu_op12 = (ctrl_EX[3] & !ctrl_EX[5]) ? sign_immed_EX : reg2data2;
-	assign alu_op02 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data2;
+	// assign alu_op02 = ctrl_EX[6] ? {{32{1'b0}},pc_EX} : reg1data2;
+	assign alu_op02 = reg1data2;
 	
 	assign branch_taken_EX1 = ctrl_EX[5] & (((func_EX[2:0] == 3'b000) & equal1) |
                                            ((func_EX[2:0] == 3'b001) & !equal1) |	

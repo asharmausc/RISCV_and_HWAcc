@@ -20,13 +20,13 @@ module decoder (
     //ctrl[0] = regWrite
 );
 
-localparam OP_R = 7'b0110011;
-localparam OP_I = 7'b0010011;
-localparam OP_S = 7'b0100011;
-localparam OP_B = 7'b1100011;
-localparam OP_J = 7'b1101111;
-localparam OP_L = 7'b0000011;
-localparam OP_AUIPC = 7'b0010111;
+localparam OP_R = 6'b011001;
+localparam OP_I = 6'b001001;
+localparam OP_S = 6'b010001;
+localparam OP_B = 6'b110001;
+localparam OP_J = 6'b110111;
+localparam OP_L = 6'b000001;
+localparam OP_AUIPC = 6'b001011;
 
 always @ (*) 
 begin
@@ -36,18 +36,18 @@ begin
     func    = {instr[31:25], instr[14:12]};
     joffset = {instr[31], instr[19:12], instr[20], instr[30:21]};
 	immed   = 'h0;
-    case(instr[6:0])
+    case(instr[6:1])
         OP_R: begin
-            ctrl = 7'b0000001; //regWrite
+            ctrl = 7'b1000001; //regWrite
         end
         OP_I: begin
             immed = instr[31:20];
-            ctrl = 7'b0001001; //immediate, regWrite
+            ctrl = 7'b1001001; //immediate, regWrite
         end
-        OP_AUIPC: begin
-            joffset = instr[31:12];
-            ctrl = 7'b1001001; //auipc, immediate, regWrite
-        end
+        // OP_AUIPC: begin
+            // joffset = instr[31:12];
+            // ctrl = 7'b1001001; //auipc, immediate, regWrite
+        // end
         OP_S: begin
             immed = {instr[31:25], instr[11:7]};
             ctrl = 7'b0001010; //immediate, memWrite
