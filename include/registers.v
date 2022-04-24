@@ -248,8 +248,8 @@
 // -------------------------------------
 
 // Tag/address widths
-`define ALU_DATAPATH_BLOCK_ADDR_WIDTH   19
-`define ALU_DATAPATH_REG_ADDR_WIDTH     4
+`define ALU_DATAPATH_BLOCK_ADDR_WIDTH   18
+`define ALU_DATAPATH_REG_ADDR_WIDTH     5
 `define CORE_BLOCK_ADDR_WIDTH           1
 `define CORE_REG_ADDR_WIDTH             22
 `define CPU_QUEUE_BLOCK_ADDR_WIDTH      4
@@ -295,7 +295,7 @@
 `define ROUTER_OP_LUT_BLOCK_ADDR  17'h00000
 `define STRIP_HEADERS_BLOCK_ADDR  17'h00001
 `define IN_ARB_BLOCK_ADDR         17'h00002
-`define ALU_DATAPATH_BLOCK_ADDR   19'h0000c
+`define ALU_DATAPATH_BLOCK_ADDR   18'h00006
 `define OQ_BLOCK_ADDR             13'h0001
 `define DRAM_BLOCK_ADDR           1'h1
 
@@ -307,35 +307,50 @@
 // Name: ALU_datapath
 // Description: Registers for ALU_datapath
 // File: projects/lab10/include/ALU_datapath.xml
-`define ALU_DATAPATH_MEM_DATA_LOW      4'h0
-`define ALU_DATAPATH_MEM_DATA_HIGH     4'h1
-`define ALU_DATAPATH_MEM_ADDR_AND_EN   4'h2
-`define ALU_DATAPATH_ISTR_DATA         4'h3
-`define ALU_DATAPATH_ISTR_ADDR_AND_EN  4'h4
-`define ALU_DATAPATH_PC_EN             4'h5
-`define ALU_DATAPATH_MEM_RD_DATA_LOW   4'h6
-`define ALU_DATAPATH_MEM_RD_DATA_HIGH  4'h7
-`define ALU_DATAPATH_ISTR_RD_DATA      4'h8
+`define ALU_DATAPATH_MEM_DATA_LOW0      5'h0
+`define ALU_DATAPATH_MEM_DATA_HIGH0     5'h1
+`define ALU_DATAPATH_MEM_ADDR_AND_EN0   5'h2
+`define ALU_DATAPATH_ISTR_DATA0         5'h3
+`define ALU_DATAPATH_ISTR_ADDR_AND_EN0  5'h4
+`define ALU_DATAPATH_MEM_DATA_LOW1      5'h5
+`define ALU_DATAPATH_MEM_DATA_HIGH1     5'h6
+`define ALU_DATAPATH_MEM_ADDR_AND_EN1   5'h7
+`define ALU_DATAPATH_ISTR_DATA1         5'h8
+`define ALU_DATAPATH_ISTR_ADDR_AND_EN1  5'h9
+`define ALU_DATAPATH_PC_EN              5'ha
+`define ALU_DATAPATH_KEY                5'hb
+`define ALU_DATAPATH_MEM_RD_DATA_LOW0   5'hc
+`define ALU_DATAPATH_MEM_RD_DATA_HIGH0  5'hd
+`define ALU_DATAPATH_ISTR_RD_DATA0      5'he
+`define ALU_DATAPATH_MEM_RD_DATA_LOW1   5'hf
+`define ALU_DATAPATH_MEM_RD_DATA_HIGH1  5'h10
+`define ALU_DATAPATH_ISTR_RD_DATA1      5'h11
+`define ALU_DATAPATH_COUNTER            5'h12
 
 // Name: cpu_dma_queue
 // Description: CPU DMA queue
 // File: lib/verilog/core/io_queues/cpu_dma_queue/xml/cpu_dma_queue.xml
 `define CPU_QUEUE_CONTROL                        16'h0
-`define CPU_QUEUE_RX_QUEUE_NUM_PKTS_IN_QUEUE     16'h1
-`define CPU_QUEUE_RX_QUEUE_NUM_PKTS_ENQUEUED     16'h2
-`define CPU_QUEUE_RX_QUEUE_NUM_PKTS_DROPPED_BAD  16'h3
-`define CPU_QUEUE_RX_QUEUE_NUM_PKTS_DEQUEUED     16'h4
-`define CPU_QUEUE_RX_QUEUE_NUM_UNDERRUNS         16'h5
-`define CPU_QUEUE_RX_QUEUE_NUM_OVERRUNS          16'h6
-`define CPU_QUEUE_RX_QUEUE_NUM_WORDS_PUSHED      16'h7
-`define CPU_QUEUE_RX_QUEUE_NUM_BYTES_PUSHED      16'h8
-`define CPU_QUEUE_TX_QUEUE_NUM_PKTS_IN_QUEUE     16'h9
-`define CPU_QUEUE_TX_QUEUE_NUM_PKTS_ENQUEUED     16'ha
-`define CPU_QUEUE_TX_QUEUE_NUM_PKTS_DEQUEUED     16'hb
-`define CPU_QUEUE_TX_QUEUE_NUM_UNDERRUNS         16'hc
-`define CPU_QUEUE_TX_QUEUE_NUM_OVERRUNS          16'hd
-`define CPU_QUEUE_TX_QUEUE_NUM_WORDS_PUSHED      16'he
-`define CPU_QUEUE_TX_QUEUE_NUM_BYTES_PUSHED      16'hf
+`define CPU_QUEUE_DBG_ADDR                       16'h1
+`define CPU_QUEUE_DBG0_REG                       16'h2
+`define CPU_QUEUE_DBG1_REG                       16'h3
+`define CPU_QUEUE_DBG2_REG                       16'h4
+`define CPU_QUEUE_DBG3_REG                       16'h5
+`define CPU_QUEUE_RX_QUEUE_NUM_PKTS_IN_QUEUE     16'h6
+`define CPU_QUEUE_RX_QUEUE_NUM_PKTS_ENQUEUED     16'h7
+`define CPU_QUEUE_RX_QUEUE_NUM_PKTS_DROPPED_BAD  16'h8
+`define CPU_QUEUE_RX_QUEUE_NUM_PKTS_DEQUEUED     16'h9
+`define CPU_QUEUE_RX_QUEUE_NUM_UNDERRUNS         16'ha
+`define CPU_QUEUE_RX_QUEUE_NUM_OVERRUNS          16'hb
+`define CPU_QUEUE_RX_QUEUE_NUM_WORDS_PUSHED      16'hc
+`define CPU_QUEUE_RX_QUEUE_NUM_BYTES_PUSHED      16'hd
+`define CPU_QUEUE_TX_QUEUE_NUM_PKTS_IN_QUEUE     16'he
+`define CPU_QUEUE_TX_QUEUE_NUM_PKTS_ENQUEUED     16'hf
+`define CPU_QUEUE_TX_QUEUE_NUM_PKTS_DEQUEUED     16'h10
+`define CPU_QUEUE_TX_QUEUE_NUM_UNDERRUNS         16'h11
+`define CPU_QUEUE_TX_QUEUE_NUM_OVERRUNS          16'h12
+`define CPU_QUEUE_TX_QUEUE_NUM_WORDS_PUSHED      16'h13
+`define CPU_QUEUE_TX_QUEUE_NUM_BYTES_PUSHED      16'h14
 
 // Name: device_id
 // Description: Device identification

@@ -30,8 +30,6 @@ module ALU(
 	    3'b000: begin // SUB - only for R type.
 	        if(func7[6:5] == 2'b01)
 	          {overflow, ALU_result} = op0 - op1;
-	    	else
-	    	  {overflow, ALU_result} = op0 + op1;
 	      end
 	    3'b001: begin //SLL and SLLI
 	        ALU_result = op0 << (op1[4:0]);
@@ -51,7 +49,6 @@ module ALU(
 	    3'b111: begin // AND and ANDI
 	        ALU_result = op0 & op1;
 	      end
-		default: {overflow, ALU_result} = op0 + op1;
 	    endcase
 	end        
   end

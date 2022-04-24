@@ -4,31 +4,56 @@
 	<nf:prefix>ALU_datapath</nf:prefix>
 	<nf:location>udp</nf:location>
 	<nf:description>Registers for ALU_datapath</nf:description>
-	<nf:blocksize>64</nf:blocksize>
+	<nf:blocksize>128</nf:blocksize>
 	<nf:registers>
 		<nf:register>
-		  <nf:name>mem_data_low</nf:name>
-			<nf:description>Upper 32 bits of mem_data</nf:description>
+		  <nf:name>mem_data_low0</nf:name>
+			<nf:description>Upper 32 bits of mem_data0</nf:description>
 			<nf:type>generic_software32</nf:type>
 		</nf:register>
 		<nf:register>
-		  <nf:name>mem_data_high</nf:name>
-			<nf:description>Upper 32 bits of mem_data</nf:description>
+		  <nf:name>mem_data_high0</nf:name>
+			<nf:description>Upper 32 bits of mem_data0</nf:description>
 			<nf:type>generic_software32</nf:type>
 		</nf:register>
 		<nf:register>
-		  <nf:name>mem_addr_and_en</nf:name>
-			<nf:description>register for mem_address and en</nf:description>
+		  <nf:name>mem_addr_and_en0</nf:name>
+			<nf:description>register for mem_address and en0</nf:description>
 			<nf:type>generic_software32</nf:type>
 		</nf:register>
 		<nf:register>
-		  <nf:name>istr_data</nf:name>
-			<nf:description>Register for instruction data</nf:description>
+		  <nf:name>istr_data0</nf:name>
+			<nf:description>Register for instruction data0</nf:description>
 			<nf:type>generic_software32</nf:type>
 		</nf:register>
 		<nf:register>
-		  <nf:name>istr_addr_and_en</nf:name>
-			<nf:description>Register for instr_address and en</nf:description>
+		  <nf:name>istr_addr_and_en0</nf:name>
+			<nf:description>Register for instr_address and en0</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>mem_data_low1</nf:name>
+			<nf:description>Upper 32 bits of mem_data1</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>mem_data_high1</nf:name>
+			<nf:description>Upper 32 bits of mem_data1</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>mem_addr_and_en1</nf:name>
+			<nf:description>register for mem_address and en1</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>istr_data1</nf:name>
+			<nf:description>Register for instruction data1</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
+		<nf:register>
+		  <nf:name>istr_addr_and_en1</nf:name>
+			<nf:description>Register for instr_address and en1</nf:description>
 			<nf:type>generic_software32</nf:type>
 		</nf:register>
 		<nf:register>
@@ -36,19 +61,39 @@
 			<nf:description>Register to enable PC and start computation</nf:description>
 			<nf:type>generic_software32</nf:type>
 		</nf:register>
+		<nf:register>
+		  <nf:name>key</nf:name>
+			<nf:description>KEY for encryption/decryption</nf:description>
+			<nf:type>generic_software32</nf:type>
+		</nf:register>
         	<nf:register>
-		  <nf:name>mem_rd_data_low</nf:name>
-			<nf:description>Register to read mem_data high</nf:description>
+		  <nf:name>mem_rd_data_low0</nf:name>
+			<nf:description>Register to read mem_data high0</nf:description>
 			<nf:type>generic_hardware32</nf:type>
 		</nf:register>
         	<nf:register>
-		  <nf:name>mem_rd_data_high</nf:name>
-			<nf:description>Register to read mem_data low</nf:description>
+		  <nf:name>mem_rd_data_high0</nf:name>
+			<nf:description>Register to read mem_data low0</nf:description>
 			<nf:type>generic_hardware32</nf:type>
 		</nf:register>
         	<nf:register>
-		  <nf:name>istr_rd_data</nf:name>
-			<nf:description>Register to read instruction_data</nf:description>
+		  <nf:name>istr_rd_data0</nf:name>
+			<nf:description>Register to read instruction_data0</nf:description>
+			<nf:type>generic_hardware32</nf:type>
+		</nf:register>
+        	<nf:register>
+		  <nf:name>mem_rd_data_low1</nf:name>
+			<nf:description>Register to read mem_data high1</nf:description>
+			<nf:type>generic_hardware32</nf:type>
+		</nf:register>
+        	<nf:register>
+		  <nf:name>mem_rd_data_high1</nf:name>
+			<nf:description>Register to read mem_data low1</nf:description>
+			<nf:type>generic_hardware32</nf:type>
+		</nf:register>
+        	<nf:register>
+		  <nf:name>istr_rd_data1</nf:name>
+			<nf:description>Register to read instruction_data1</nf:description>
 			<nf:type>generic_hardware32</nf:type>
 		</nf:register>
         	<nf:register>

@@ -159,8 +159,9 @@ module ALU_datapath
 	assign out_ctrl = out_ctrl_r[0];
 	assign out_wr   = out_wr_r  [0];
 	
-  generate 
-    for(genvar i = 0; i< 2; i= i+1) begin
+  genvar i;
+  generate begin 
+    for(i = 0; i< 2; i= i+1) begin : Processor
       fifo_sram #(
         .DWIDTH  (72),
 	    .IAWIDTH (10) // Address range is [0 to 1023]
@@ -175,13 +176,13 @@ module ALU_datapath
         .addrb        (mem_addr_out[i]),
         .dinb         ({8'h00, mem_data_out[i]}),
         .fifo_input   ({out_ctrlHWacc,out_dataHWacc}),
-	    .reb          (reb[i]),
+	.reb          (reb[i]),
         .sram_data_out(sram_data_out[i]), 
         .fifo_output  ({out_ctrl_r[i],out_data_r[i]}),
-	    .almfull      (almfull[i]),
-	    .fifo_empty   (empty[i]),
-	    .o_full       (full[i]),
-	    .stall        (stall[i])
+	.almfull      (almfull[i]),
+	.fifo_empty   (empty[i]),
+	.o_full       (full[i]),
+	.stall        (stall[i])
       );
 	  
       assign reb[i] = out_rdy & !empty[i];
@@ -210,7 +211,8 @@ module ALU_datapath
 	  	.reset_n      (~reset), 
 	  	.clk          (clk)
       );
-   end
+   end // end of for.
+   end // 
    endgenerate   
 
    generic_regs
@@ -242,12 +244,12 @@ module ALU_datapath
 
       // --- SW regs interface
       .software_regs    ({key, pc_en, istr_addr_and_en[1], istr_data[1], mem_addr_and_en[1], mem_data_high[1], mem_data_low[1],
-                                 	  istr_addr_and_en[0], istr_data[0], mem_addr_and_en[0], mem_data_high[0], mem_data_low[0]}),
+                                      istr_addr_and_en[0], istr_data[0], mem_addr_and_en[0], mem_data_high[0], mem_data_low[0]}),
 
       // --- HW regs interface
       //.hardware_regs    ({{out_count, empty, full, almfull, stall, in_count[11:0]}, istr_rd_data, mem_rd_data_high, mem_rd_data_low}),
       .hardware_regs    ({{28'h0000000, empty[0], full[0], almfull[0], stall[0]}, istr_rd_data[1], mem_rd_data_high[1], mem_rd_data_low[1], 
-	                                                                  istr_rd_data[0], mem_rd_data_high[0], mem_rd_data_low[0]}),
+	                                                                          istr_rd_data[0], mem_rd_data_high[0], mem_rd_data_low[0]}),
 
       .clk              (clk),
       .reset            (reset)

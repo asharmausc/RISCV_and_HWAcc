@@ -37,13 +37,15 @@ assign in_rdy = out_rdy;
 assign out_wr = out_wr_r[5];
 
 // pipelining the out_ctrl for 5 clocks.
+genvar i;
 generate
   // Final output.
   assign out_ctrl = out_ctrl_r[5];
-  for(genvar i = 1; i<6; i=i+1)
+  for(i = 1; i<6; i=i+1) begin : pipeline
       always @(posedge clk) begin
 	    out_ctrl_r[i] <= out_ctrl_r[i-1];
 	  end
+  end
   always @(posedge clk) begin
       out_ctrl_r[0] <= in_ctrl;
   end
@@ -134,10 +136,11 @@ assign out_dataE = {out_18,out_19,out_16,out_17};
 reg [63:0] out_data_r [4:0];
 // pipelining the out_ctrl for 5 clocks.
 generate
-  for(genvar i = 1; i<5; i=i+1)
+  for(i = 1; i<5; i=i+1) begin : out_data_pip
       always @(posedge clk) begin
 	    out_data_r[i] <= out_data_r[i-1];
 	  end
+  end
   // Final output.
   always @(posedge clk) begin
       out_data_r[0] <= in_data;

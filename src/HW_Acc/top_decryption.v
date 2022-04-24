@@ -19,7 +19,7 @@ reg [5:0] inside_payload_r;
 reg [5:0] in_rdy_r, out_wr_r;
 reg [7:0] out_ctrl_r [5:0];
 
-//genvar i;
+genvar i;
 always @(posedge clk) begin
   if(!reset_n) begin
       //in_rdy_r <= 'h0;
@@ -37,16 +37,18 @@ assign in_rdy = out_rdy;
 assign out_wr = out_wr_r[5];
 
 // pipelining the out_ctrl for 5 clocks.
-generate
+generate begin
   // Final output.
   assign out_ctrl = out_ctrl_r[5];
-  for(genvar i = 1; i<6; i=i+1)
+  for(i = 1; i<6; i=i+1) begin : pipeline
       always @(posedge clk) begin
 	    out_ctrl_r[i] <= out_ctrl_r[i-1];
 	  end
+  end
   always @(posedge clk) begin
      out_ctrl_r[0] <= in_ctrl;
   end
+end
 endgenerate
 
 // Module 1.
@@ -131,10 +133,11 @@ reg [63:0] out_data_r [4:0];
 
 // pipelining the out_ctrl for 5 clocks.
 generate
-  for(genvar i = 1; i<5; i=i+1)
+  for(i = 1; i<5; i=i+1) begin : out_data_pip
       always @(posedge clk) begin
 	    out_data_r[i] <= out_data_r[i-1];
 	  end
+  end
   // Final output.
   always @(posedge clk) begin
       out_data_r[0] <= in_data;

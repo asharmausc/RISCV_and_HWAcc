@@ -21,7 +21,7 @@ module headerparser #(
 	output reg [DWIDTH-1:0]     out_data,
 	output reg [CTRL_WIDTH-1:0] out_ctrl,
 	output reg                  out_wr,
-	input  reg                  out_rdy,
+	input                       out_rdy,
     
 	// output data 
 	output reg [15:0] data_count,
